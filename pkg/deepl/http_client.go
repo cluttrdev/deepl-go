@@ -3,6 +3,8 @@ package deepl
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -31,21 +33,27 @@ func NewClient(baseURL string, apiKey string, timeout time.Duration) *Client {
 	}
 }
 
-func (c *Client) do(method string, endpoint string, params map[string]string) (*http.Response, error) {
-	url := fmt.Sprintf("%s/%s", c.baseURL, endpoint)
-	req, err := http.NewRequest(method, url, nil)
+type Error struct {
+	Code int
+}
+
+func (err Error) Error() string {
+	return http.StatusText(err.Code)
+}
+
+func (c *Client) do(method string, endpoint string, params url.Values) (*http.Response, error) {
+	req, err := http.NewRequest(method, fmt.Sprintf("%s/%s", c.baseURL, endpoint), strings.NewReader(params.Encode()))
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Authorization", fmt.Sprintf("DeepL-Auth-Key %s", c.apiKey))
 
-	q := req.URL.Query()
-	for key, val := range params {
-		q.Set(key, val)
+	res, err := c.httpClient.Do(req)
+	if res.StatusCode != http.StatusOK {
+		return nil, Error{Code: res.StatusCode}
 	}
-	req.URL.RawQuery = q.Encode()
 
-	return c.httpClient.Do(req)
+	return res, err
 }
