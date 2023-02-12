@@ -15,10 +15,9 @@ var client *deepl.Client
 var verbose bool
 
 var rootCmd = &cobra.Command{
-	Use:     "deepl",
-	Short:   "DeepL language translation",
-	Long:    "",
-	Version: "0.1.0",
+	Use:   "deepl",
+	Short: "DeepL language translation",
+	Long:  "",
 }
 
 func Execute() {
