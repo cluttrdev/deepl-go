@@ -28,7 +28,7 @@ func Execute() {
 }
 
 func init() {
-	translator = deepl.NewTranslator(os.Getenv("DEEPL_API_KEY"), deepl.TranslatorOptions{})
+	translator = deepl.NewTranslator(os.Getenv("DEEPL_AUTH_KEY"), deepl.TranslatorOptions{})
 
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
 }
