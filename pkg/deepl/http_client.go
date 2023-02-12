@@ -33,12 +33,17 @@ func NewClient(baseURL string, apiKey string, timeout time.Duration) *Client {
 	}
 }
 
-type Error struct {
-	Code int
+type HTTPError struct {
+	StatusCode int
 }
 
-func (err Error) Error() string {
-	return http.StatusText(err.Code)
+func (err HTTPError) Error() string {
+	switch err.StatusCode {
+	case 456:
+		return fmt.Sprintf("%d - %s", err.StatusCode, "Quota exceeded. The character limit has been reached.")
+	default:
+		return fmt.Sprintf("%d - %s", err.StatusCode, http.StatusText(err.StatusCode))
+	}
 }
 
 func (c *Client) do(method string, endpoint string, params url.Values) (*http.Response, error) {
@@ -52,7 +57,7 @@ func (c *Client) do(method string, endpoint string, params url.Values) (*http.Re
 
 	res, err := c.httpClient.Do(req)
 	if res.StatusCode != http.StatusOK {
-		return nil, Error{Code: res.StatusCode}
+		return nil, HTTPError{StatusCode: res.StatusCode}
 	}
 
 	return res, err
