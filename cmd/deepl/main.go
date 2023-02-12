@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/cluttrdev/deepl-go/cmd"
+	"github.com/cluttrdev/deepl-go/pkg/cmd"
 )
 
 func main() {

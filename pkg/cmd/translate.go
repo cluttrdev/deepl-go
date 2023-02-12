@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cluttrdev/deepl-go/pkg/deepl"
+	deepl "github.com/cluttrdev/deepl-go/pkg/api"
 )
 
 var (
