@@ -88,7 +88,7 @@ func IgnoreTags(tags string) TranslateOption {
 }
 
 // The translate function.
-func (c *Client) TranslateText(texts []string, targetLang string, options ...TranslateOption) ([]Translation, error) {
+func (t *Translator) TranslateText(texts []string, targetLang string, options ...TranslateOption) ([]Translation, error) {
 	vals := make(url.Values)
 
 	for _, text := range texts {
@@ -101,7 +101,7 @@ func (c *Client) TranslateText(texts []string, targetLang string, options ...Tra
 		opt(vals)
 	}
 
-	res, err := c.do("POST", "translate", vals)
+	res, err := t.httpClient.do("POST", "translate", vals)
 	if err != nil {
 		return nil, err
 	}

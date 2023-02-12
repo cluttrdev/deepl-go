@@ -13,15 +13,13 @@ const (
 	BaseURLFree = "https://api-free.deepl.com/v2"
 )
 
-type (
-	Client struct {
-		httpClient *http.Client
-		baseURL    string
-		apiKey     string
-	}
-)
+type Client struct {
+	httpClient *http.Client
+	baseURL    string
+	authKey    string
+}
 
-func NewClient(baseURL string, apiKey string, timeout time.Duration) *Client {
+func NewClient(baseURL string, authKey string, timeout time.Duration) *Client {
 	client := &http.Client{
 		Timeout: timeout,
 	}
@@ -29,7 +27,7 @@ func NewClient(baseURL string, apiKey string, timeout time.Duration) *Client {
 	return &Client{
 		httpClient: client,
 		baseURL:    baseURL,
-		apiKey:     apiKey,
+		authKey:    authKey,
 	}
 }
 
@@ -53,7 +51,7 @@ func (c *Client) do(method string, endpoint string, params url.Values) (*http.Re
 	}
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Authorization", fmt.Sprintf("DeepL-Auth-Key %s", c.apiKey))
+	req.Header.Add("Authorization", fmt.Sprintf("DeepL-Auth-Key %s", c.authKey))
 
 	res, err := c.httpClient.Do(req)
 	if res.StatusCode != http.StatusOK {

@@ -65,7 +65,7 @@ var translateCmd = &cobra.Command{
 			options = append(options, deepl.IgnoreTags(ignoreTags))
 		}
 
-		translations, err := client.TranslateText(args, targetLang, options...)
+		translations, err := translator.TranslateText(args, targetLang, options...)
 		if err != nil {
 			log.Fatal(err)
 		}

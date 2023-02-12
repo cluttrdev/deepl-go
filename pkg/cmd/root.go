@@ -3,14 +3,13 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/spf13/cobra"
 
 	deepl "github.com/cluttrdev/deepl-go/pkg/api"
 )
 
-var client *deepl.Client
+var translator *deepl.Translator
 
 var verbose bool
 
@@ -29,8 +28,7 @@ func Execute() {
 }
 
 func init() {
-	timeout := 10 * time.Second
-	client = deepl.NewClient(deepl.BaseURLFree, os.Getenv("DEEPL_API_KEY"), timeout)
+	translator = deepl.NewTranslator(os.Getenv("DEEPL_API_KEY"), deepl.TranslatorOptions{})
 
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
 }
