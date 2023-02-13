@@ -25,8 +25,8 @@ var (
 )
 
 var translateCmd = &cobra.Command{
-	Use:   "translate text",
-	Short: "The translate function",
+	Use:   "translate [text]...",
+	Short: "Translate text(s) into the target language",
 	Long:  "",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
