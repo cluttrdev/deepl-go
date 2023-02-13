@@ -80,17 +80,17 @@ var translateCmd = &cobra.Command{
 }
 
 func init() {
-	translateCmd.Flags().StringVarP(&targetLang, "target-lang", "", "DE", "The language into which the text should be translated")
-	translateCmd.Flags().StringVarP(&sourceLang, "source-lang", "", "", "The language to be translated")
-	translateCmd.Flags().StringVarP(&splitSentences, "split-sentences", "", "", "Whether to split input into sentences")
-	translateCmd.Flags().StringVarP(&preserveFormatting, "preserve-formatting", "", "", "Whether the engine should respect original formatting")
-	translateCmd.Flags().StringVarP(&formality, "formality", "", "", "Whether the engine should lean towards formal or informal language")
-	translateCmd.Flags().StringVarP(&glossaryId, "glossary-id", "", "", "The glossary to use for translation")
-	translateCmd.Flags().StringVarP(&tagHandling, "tag-handling", "", "", "Which kind of tags to handle")
-	translateCmd.Flags().StringVarP(&nonSplittingTags, "non-splitting-tags", "", "", "Comma-separated list of tags which never split sentences")
-	translateCmd.Flags().StringVarP(&outlineDetection, "outline-detection", "", "", "Whether to automatically detect XML structure")
-	translateCmd.Flags().StringVarP(&splittingTags, "splitting-tags", "", "", "Comma-separated list of tags which always cause splits")
-	translateCmd.Flags().StringVarP(&ignoreTags, "ignore-tags", "", "", "Comma-separated list of tags that indicate text not to be translated")
+	translateCmd.Flags().StringVarP(&targetLang, "target-lang", "", "DE", "the language into which the text should be translated")
+	translateCmd.Flags().StringVarP(&sourceLang, "source-lang", "", "", "the language to be translated")
+	translateCmd.Flags().StringVarP(&splitSentences, "split-sentences", "", "", "whether to split input into sentences")
+	translateCmd.Flags().StringVarP(&preserveFormatting, "preserve-formatting", "", "", "whether the engine should respect original formatting")
+	translateCmd.Flags().StringVarP(&formality, "formality", "", "", "whether the engine should lean towards formal or informal language")
+	translateCmd.Flags().StringVarP(&glossaryId, "glossary-id", "", "", "the glossary to use for translation")
+	translateCmd.Flags().StringVarP(&tagHandling, "tag-handling", "", "", "which kind of tags to handle")
+	translateCmd.Flags().StringVarP(&nonSplittingTags, "non-splitting-tags", "", "", "comma-separated list of tags which never split sentences")
+	translateCmd.Flags().StringVarP(&outlineDetection, "outline-detection", "", "", "whether to automatically detect XML structure")
+	translateCmd.Flags().StringVarP(&splittingTags, "splitting-tags", "", "", "comma-separated list of tags which always cause splits")
+	translateCmd.Flags().StringVarP(&ignoreTags, "ignore-tags", "", "", "comma-separated list of tags that indicate text not to be translated")
 	translateCmd.Flags().SortFlags = false
 
 	rootCmd.AddCommand(translateCmd)
