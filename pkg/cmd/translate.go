@@ -71,10 +71,11 @@ var translateCmd = &cobra.Command{
 		}
 
 		for _, translation := range translations {
-			if verbose {
+			if v, _ := cmd.Flags().GetCount("verbose"); v > 0 {
 				fmt.Printf("Detected Source Language: %s\n", translation.DetectedSourceLanguage)
+			} else {
+				fmt.Println(translation.Text)
 			}
-			fmt.Println(translation.Text)
 		}
 	},
 }

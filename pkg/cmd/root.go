@@ -11,8 +11,6 @@ import (
 
 var translator *deepl.Translator
 
-var verbose bool
-
 var rootCmd = &cobra.Command{
 	Use:   "deepl",
 	Short: "DeepL language translation",
@@ -30,5 +28,5 @@ func Execute() {
 func init() {
 	translator = deepl.NewTranslator(os.Getenv("DEEPL_AUTH_KEY"), deepl.TranslatorOptions{})
 
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
+	rootCmd.PersistentFlags().CountP("verbose", "v", "verbose output")
 }
