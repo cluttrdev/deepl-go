@@ -2,6 +2,7 @@ package deepl
 
 import (
 	"encoding/json"
+	"net/http"
 )
 
 type Usage struct {
@@ -14,9 +15,11 @@ type Usage struct {
 }
 
 func (t *Translator) GetUsage() (*Usage, error) {
-	res, err := t.httpClient.do("GET", "usage", nil)
+	res, err := t.callAPI("GET", "usage", nil, nil)
 	if err != nil {
 		return nil, err
+	} else if res.StatusCode != http.StatusOK {
+		return nil, HTTPError{StatusCode: res.StatusCode}
 	}
 	defer res.Body.Close()
 

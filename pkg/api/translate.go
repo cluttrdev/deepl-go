@@ -2,16 +2,13 @@ package deepl
 
 import (
 	"encoding/json"
+	"net/http"
 	"net/url"
 )
 
 type Translation struct {
 	DetectedSourceLanguage string `json:"detected_source_language"`
 	Text                   string `json:"text"`
-}
-
-type translationResponse struct {
-	Translations []Translation `json:"translations"`
 }
 
 type TranslateOption func(url.Values)
@@ -101,13 +98,17 @@ func (t *Translator) TranslateText(texts []string, targetLang string, options ..
 		opt(vals)
 	}
 
-	res, err := t.httpClient.do("POST", "translate", vals)
+	res, err := t.callAPI("POST", "translate", vals, nil)
 	if err != nil {
 		return nil, err
+	} else if res.StatusCode != http.StatusOK {
+		return nil, HTTPError{StatusCode: res.StatusCode}
 	}
 	defer res.Body.Close()
 
-	var response translationResponse
+	var response struct {
+		Translations []Translation `json:"translations"`
+	}
 	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
 		return nil, err
 	}

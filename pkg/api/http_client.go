@@ -15,8 +15,6 @@ const (
 
 type Client struct {
 	httpClient *http.Client
-	baseURL    string
-	authKey    string
 }
 
 func NewClient(baseURL string, authKey string, timeout time.Duration) *Client {
@@ -26,8 +24,6 @@ func NewClient(baseURL string, authKey string, timeout time.Duration) *Client {
 
 	return &Client{
 		httpClient: client,
-		baseURL:    baseURL,
-		authKey:    authKey,
 	}
 }
 
@@ -44,19 +40,19 @@ func (err HTTPError) Error() string {
 	}
 }
 
-func (c *Client) do(method string, endpoint string, params url.Values) (*http.Response, error) {
-	req, err := http.NewRequest(method, fmt.Sprintf("%s/%s", c.baseURL, endpoint), strings.NewReader(params.Encode()))
+func (c *Client) do(method string, url string, data url.Values, headers http.Header) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Authorization", fmt.Sprintf("DeepL-Auth-Key %s", c.authKey))
+	for k, vs := range headers {
+		for _, v := range vs {
+			req.Header.Add(k, v)
+		}
+	}
 
 	res, err := c.httpClient.Do(req)
-	if res.StatusCode != http.StatusOK {
-		return nil, HTTPError{StatusCode: res.StatusCode}
-	}
 
 	return res, err
 }

@@ -2,6 +2,7 @@ package deepl
 
 import (
 	"encoding/json"
+	"net/http"
 	"net/url"
 )
 
@@ -11,6 +12,11 @@ type Language struct {
 	SupportsFormality bool   `json:"supports_formality"`
 }
 
+type LanguagePair struct {
+	SourceLang string `json:"source_lang"`
+	TargetLang string `json:"target_lang"`
+}
+
 func (t *Translator) GetLanguages(langType string) ([]Language, error) {
 	vals := make(url.Values)
 
@@ -18,9 +24,11 @@ func (t *Translator) GetLanguages(langType string) ([]Language, error) {
 		vals.Set("type", langType)
 	}
 
-	res, err := t.httpClient.do("GET", "languages", vals)
+	res, err := t.callAPI("GET", "languages", vals, nil)
 	if err != nil {
 		return nil, err
+	} else if res.StatusCode != http.StatusOK {
+		return nil, HTTPError{StatusCode: res.StatusCode}
 	}
 	defer res.Body.Close()
 
@@ -30,4 +38,23 @@ func (t *Translator) GetLanguages(langType string) ([]Language, error) {
 	}
 
 	return languages, nil
+}
+
+func (t *Translator) GetGlossaryLanguagePairs() ([]LanguagePair, error) {
+	res, err := t.callAPI("GET", "glossary-language-pairs", nil, nil)
+	if err != nil {
+		return nil, err
+	} else if res.StatusCode != http.StatusOK {
+		return nil, HTTPError{StatusCode: res.StatusCode}
+	}
+	defer res.Body.Close()
+
+	var response struct {
+		SupportedLanguages []LanguagePair `json:"supported_languages"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		return nil, err
+	}
+
+	return response.SupportedLanguages, nil
 }
