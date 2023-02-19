@@ -28,6 +28,12 @@ var languagesCmd = &cobra.Command{
 				fmt.Printf("%s, %s\n", pair.SourceLang, pair.TargetLang)
 			}
 		} else {
+			if cmd.Flags().Changed("source") {
+				langType = "source"
+			} else if cmd.Flags().Changed("target") {
+				langType = "target"
+			}
+
 			if langType == "" {
 				printLanguages("source")
 				fmt.Println()
@@ -56,9 +62,11 @@ func printLanguages(langType string) {
 }
 
 func init() {
-	languagesCmd.Flags().Bool("glossary", false, "list language pairs supported for glossaries")
 	languagesCmd.Flags().StringVar(&langType, "type", "source", "whether source or target languages should be listed")
-	languagesCmd.MarkFlagsMutuallyExclusive("type", "glossary")
+	languagesCmd.Flags().Bool("source", false, "shorthand for --type=source")
+	languagesCmd.Flags().Bool("target", false, "shorthand for --type=target")
+	languagesCmd.Flags().Bool("glossary", false, "list language pairs supported for glossaries")
+	languagesCmd.MarkFlagsMutuallyExclusive("type", "source", "target", "glossary")
 
 	rootCmd.AddCommand(languagesCmd)
 }
