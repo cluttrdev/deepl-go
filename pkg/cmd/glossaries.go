@@ -6,9 +6,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 
+	table "github.com/cluttrdev/deepl-go/internal"
 	deepl "github.com/cluttrdev/deepl-go/pkg/api"
 )
 
@@ -117,10 +117,10 @@ var glossaryEntriesCmd = &cobra.Command{
 }
 
 func printGlossaries(glossaries []deepl.GlossaryInfo) {
-	tbl := table.New("Glossary ID", "Name", "Ready", "Source", "Target", "Count", "Created")
+	tbl := table.NewTable("Glossary ID", "Name", "Ready", "Source", "Target", "Count", "Created")
 
 	for _, g := range glossaries {
-		tbl.AddRow(g.GlossaryId, g.Name, g.Ready, g.SourceLang, g.TargetLang, g.EntryCount, g.CreationTime)
+		tbl.AddRow(g.GlossaryId, g.Name, fmt.Sprint(g.Ready), g.SourceLang, g.TargetLang, fmt.Sprint(g.EntryCount), g.CreationTime)
 	}
 
 	tbl.Print()
