@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -39,6 +40,10 @@ var translateCmd = &cobra.Command{
 				opt deepl.TranslateOption
 			)
 
+			if flag.Name == "target-lang" {
+				return
+			}
+
 			if flag.Changed {
 				switch flag.Name {
 				case "source-lang":
@@ -61,6 +66,9 @@ var translateCmd = &cobra.Command{
 					opt, err = deepl.SplittingTags(flag.Value.String())
 				case "ignore-tags":
 					opt, err = deepl.IgnoreTags(flag.Value.String())
+
+				default:
+					opt, err = nil, errors.Errorf("Invalid option: %s", flag.Name)
 				}
 
 				if err != nil {
@@ -81,9 +89,8 @@ var translateCmd = &cobra.Command{
 		for _, translation := range translations {
 			if v, _ := cmd.Flags().GetCount("verbose"); v > 0 {
 				fmt.Printf("Detected Source Language: %s\n", translation.DetectedSourceLanguage)
-			} else {
-				fmt.Println(translation.Text)
 			}
+			fmt.Println(translation.Text)
 		}
 	},
 }
