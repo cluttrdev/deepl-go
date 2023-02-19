@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	deepl "github.com/cluttrdev/deepl-go/pkg/api"
 )
@@ -30,40 +31,47 @@ var translateCmd = &cobra.Command{
 	Long:  "",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		flagSet := cmd.Flags()
-
 		options := []deepl.TranslateOption{}
 
-		if flagSet.Changed("source-lang") {
-			options = append(options, deepl.SourceLang(sourceLang))
+		visitor := func(flag *pflag.Flag) {
+			var (
+				err error
+				opt deepl.TranslateOption
+			)
+
+			if flag.Changed {
+				switch flag.Name {
+				case "source-lang":
+					opt, err = deepl.SourceLang(flag.Value.String())
+				case "split-sentences":
+					opt, err = deepl.SplitSentences(flag.Value.String())
+				case "preserve-formatting":
+					opt, err = deepl.PreserveFormatting(flag.Value.String())
+				case "formality":
+					opt, err = deepl.Formality(flag.Value.String())
+				case "glossary-id":
+					opt, err = deepl.GlossaryId(flag.Value.String())
+				case "tag-handling":
+					opt, err = deepl.TagHandling(flag.Value.String())
+				case "non-splitting-tags":
+					opt, err = deepl.NonSplittingTags(flag.Value.String())
+				case "outline-detection":
+					opt, err = deepl.OutlineDetection(flag.Value.String())
+				case "splitting-tags":
+					opt, err = deepl.SplittingTags(flag.Value.String())
+				case "ignore-tags":
+					opt, err = deepl.IgnoreTags(flag.Value.String())
+				}
+
+				if err != nil {
+					log.Fatal(err)
+				} else {
+					options = append(options, opt)
+				}
+			}
 		}
-		if flagSet.Changed("split-sentences") {
-			options = append(options, deepl.SplitSentences(splitSentences))
-		}
-		if flagSet.Changed("preserveformatting") {
-			options = append(options, deepl.PreserveFormatting(preserveFormatting))
-		}
-		if flagSet.Changed("formality") {
-			options = append(options, deepl.Formality(formality))
-		}
-		if flagSet.Changed("glossary-id") {
-			options = append(options, deepl.GlossaryId(glossaryId))
-		}
-		if flagSet.Changed("tag-handling") {
-			options = append(options, deepl.TagHandling(tagHandling))
-		}
-		if flagSet.Changed("non-splitting-tags") {
-			options = append(options, deepl.NonSplittingTags(nonSplittingTags))
-		}
-		if flagSet.Changed("outline-detection") {
-			options = append(options, deepl.OutlineDetection(outlineDetection))
-		}
-		if flagSet.Changed("splitting-tags") {
-			options = append(options, deepl.SplittingTags(splittingTags))
-		}
-		if flagSet.Changed("ignore-tags") {
-			options = append(options, deepl.IgnoreTags(ignoreTags))
-		}
+
+		cmd.LocalFlags().VisitAll(visitor)
 
 		translations, err := translator.TranslateText(args, targetLang, options...)
 		if err != nil {

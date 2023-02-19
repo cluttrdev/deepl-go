@@ -43,7 +43,7 @@ func PreserveFormatting(preserve string) (TranslateOption, error) {
 			vals.Set("preserve_formatting", preserve)
 		}, nil
 	}
-	return errors.Errorf("Invalid PreserveFormatting value: %s", preserve)
+	return nil, errors.Errorf("Invalid PreserveFormatting value: %s", preserve)
 }
 
 // Formality sets whether the translated text should lean towards formal or informal language

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -26,7 +27,11 @@ func Execute() {
 }
 
 func init() {
-	translator = deepl.NewTranslator(os.Getenv("DEEPL_AUTH_KEY"), deepl.TranslatorOptions{})
+	var err error
+	translator, err = deepl.NewTranslator(os.Getenv("DEEPL_AUTH_KEY"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	rootCmd.PersistentFlags().CountP("verbose", "v", "verbose output")
 }
