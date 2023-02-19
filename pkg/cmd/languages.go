@@ -17,16 +17,13 @@ var languagesCmd = &cobra.Command{
 	Short: "Retrieve supported languages",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		if cmd.Flags().Changed("glossary") {
-			languagePairs, err := translator.GetGlossaryLanguagePairs()
-			if err != nil {
-				log.Fatal(err)
-			}
+		verbosity, err := cmd.Flags().GetCount("verbose")
+		if err != nil {
+			verbosity = 0
+		}
 
-			fmt.Println("Language pairs supported for glossaries: (source, target)")
-			for _, pair := range languagePairs {
-				fmt.Printf("%s, %s\n", pair.SourceLang, pair.TargetLang)
-			}
+		if cmd.Flags().Changed("glossary") {
+			printGlossaryLanguages(verbosity)
 		} else {
 			if cmd.Flags().Changed("source") {
 				langType = "source"
@@ -35,29 +32,45 @@ var languagesCmd = &cobra.Command{
 			}
 
 			if langType == "" {
-				printLanguages("source")
+				printLanguages("source", verbosity)
 				fmt.Println()
-				printLanguages("target")
+				printLanguages("target", verbosity)
 			} else {
-				printLanguages(langType)
+				printLanguages(langType, verbosity)
 			}
 		}
 	},
 }
 
-func printLanguages(langType string) {
+func printLanguages(langType string, verbosity int) {
 	languages, err := translator.GetLanguages(langType)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("%s languages available:\n", cases.Title(language.English).String(langType))
+	if verbosity > 0 {
+		fmt.Printf("%s languages available:\n", cases.Title(language.English).String(langType))
+	}
 	for _, lang := range languages {
 		if lang.SupportsFormality {
 			fmt.Printf("%s: %s (supports formality)\n", lang.Code, lang.Name)
 		} else {
 			fmt.Printf("%s: %s\n", lang.Code, lang.Name)
 		}
+	}
+}
+
+func printGlossaryLanguages(verbosity int) {
+	languagePairs, err := translator.GetGlossaryLanguagePairs()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if verbosity > 0 {
+		fmt.Println("Language pairs supported for glossaries: (source, target)")
+	}
+	for _, pair := range languagePairs {
+		fmt.Printf("%s, %s\n", pair.SourceLang, pair.TargetLang)
 	}
 }
 

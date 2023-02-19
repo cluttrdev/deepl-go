@@ -38,8 +38,11 @@ var glossaryCreateCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		fmt.Println("Created glossary")
-		printGlossaries([]deepl.GlossaryInfo{*glossary})
+		v, err := cmd.Flags().GetCount("verbose")
+		if v > 0 {
+			fmt.Println("Created glossary")
+		}
+		printGlossaries([]deepl.GlossaryInfo{*glossary}, v)
 	},
 }
 
@@ -51,8 +54,14 @@ var glossaryListCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		v, err := cmd.Flags().GetCount("verbose")
+		if err != nil {
+			v = 0
+		}
+
 		if len(glossaries) > 0 {
-			printGlossaries(glossaries)
+			printGlossaries(glossaries, v)
 		} else {
 			fmt.Println("No glossaries available")
 		}
@@ -70,7 +79,12 @@ var glossaryInfoCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		printGlossaries([]deepl.GlossaryInfo{*glossary})
+		v, err := cmd.Flags().GetCount("verbose")
+		if err != nil {
+			v = 0
+		}
+
+		printGlossaries([]deepl.GlossaryInfo{*glossary}, v)
 	},
 }
 
@@ -116,14 +130,20 @@ var glossaryEntriesCmd = &cobra.Command{
 	},
 }
 
-func printGlossaries(glossaries []deepl.GlossaryInfo) {
-	tbl := table.NewTable("Glossary ID", "Name", "Ready", "Source", "Target", "Count", "Created")
+func printGlossaries(glossaries []deepl.GlossaryInfo, verbosity int) {
+	if verbosity == 0 {
+		for _, g := range glossaries {
+			fmt.Println(g.GlossaryId)
+		}
+	} else {
+		tbl := table.NewTable("Glossary ID", "Name", "Ready", "Source", "Target", "Count", "Created")
 
-	for _, g := range glossaries {
-		tbl.AddRow(g.GlossaryId, g.Name, fmt.Sprint(g.Ready), g.SourceLang, g.TargetLang, fmt.Sprint(g.EntryCount), g.CreationTime)
+		for _, g := range glossaries {
+			tbl.AddRow(g.GlossaryId, g.Name, fmt.Sprint(g.Ready), g.SourceLang, g.TargetLang, fmt.Sprint(g.EntryCount), g.CreationTime)
+		}
+
+		tbl.Print()
 	}
-
-	tbl.Print()
 }
 
 func printGlossaryEntries(entries []deepl.GlossaryEntry, sep rune) {

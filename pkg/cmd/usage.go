@@ -17,9 +17,11 @@ var usageCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Println("Usage this billing period:")
+		if v, _ := cmd.Flags().GetCount("verbose"); v > 0 {
+			fmt.Println("Usage this billing period:")
+		}
 		if usage.CharacterLimit > 0 {
-			fmt.Printf("Charaters: %d of %d\n", usage.CharacterCount, usage.CharacterLimit)
+			fmt.Printf("Characters: %d of %d\n", usage.CharacterCount, usage.CharacterLimit)
 		}
 		if usage.DocumentLimit > 0 {
 			fmt.Printf("Documents: %d of /%d\n", usage.DocumentCount, usage.DocumentLimit)
