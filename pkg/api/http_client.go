@@ -8,16 +8,11 @@ import (
 	"time"
 )
 
-const (
-	BaseURLPro  = "https://api.deepl.com/v2"
-	BaseURLFree = "https://api-free.deepl.com/v2"
-)
-
 type Client struct {
 	httpClient *http.Client
 }
 
-func NewClient(baseURL string, authKey string, timeout time.Duration) *Client {
+func NewClient(timeout time.Duration) *Client {
 	client := &http.Client{
 		Timeout: timeout,
 	}

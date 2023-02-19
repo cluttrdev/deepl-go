@@ -8,9 +8,10 @@ import (
 	"time"
 )
 
-type TranslatorOptions struct {
-	ServerUrl string `default:""`
-}
+const (
+	ServerURLPro  = "https://api.deepl.com/v2"
+	ServerURLFree = "https://api-free.deepl.com/v2"
+)
 
 type Translator struct {
 	httpClient *Client
@@ -18,26 +19,58 @@ type Translator struct {
 	authKey    string
 }
 
-func NewTranslator(authKey string, options TranslatorOptions) *Translator {
-	var serverURL string
-	if options.ServerUrl == "" {
-		if authKeyIsFreeAccount(authKey) {
-			serverURL = BaseURLFree
-		} else {
-			serverURL = BaseURLPro
+// TranslatorOption is a functional option for configuring the Translator
+type TranslatorOption func(*Translator) error
+
+// ServerURL allows overriding the default server url
+func ServerURL(url string) TranslatorOption {
+	return func(t *Translator) error {
+		t.serverURL = url
+		return nil
+	}
+}
+
+// parseOptions apllies the supplied functional options to the Translator
+func (t *Translator) parseOptions(opts ...TranslatorOption) error {
+	for _, opt := range opts {
+		err := opt(t)
+		if err != nil {
+			return err
 		}
 	}
 
-	timeout := 10 * time.Second
-	httpClient := NewClient(serverURL, authKey, timeout)
+	return nil
+}
 
-	return &Translator{
+// NewTranslator creates a new translator
+func NewTranslator(authKey string, opts ...TranslatorOption) (*Translator, error) {
+	// Determine default server url based on auth key
+	var serverURL string
+	if authKeyIsFreeAccount(authKey) {
+		serverURL = ServerURLFree
+	} else {
+		serverURL = ServerURLPro
+	}
+
+	// Set up default http client
+	timeout := time.Second * 30
+	httpClient := NewClient(timeout)
+
+	t := &Translator{
 		httpClient: httpClient,
 		serverURL:  serverURL,
 		authKey:    authKey,
 	}
+
+	// Parse and apply options
+	if err := t.parseOptions(opts...); err != nil {
+		return nil, err
+	}
+
+	return t, nil
 }
 
+// callAPI calls the supplied API endpoint with the provided parameters and returns the response
 func (t *Translator) callAPI(method string, endpoint string, data url.Values, headers http.Header) (*http.Response, error) {
 	url := fmt.Sprintf("%s/%s", t.serverURL, endpoint)
 
@@ -54,6 +87,7 @@ func (t *Translator) callAPI(method string, endpoint string, data url.Values, he
 	return res, err
 }
 
+// authKeyIsFreeAccount determines whether the supplied auth key belongs to a Free account
 func authKeyIsFreeAccount(authKey string) bool {
 	return strings.HasSuffix(authKey, ":fx")
 }
