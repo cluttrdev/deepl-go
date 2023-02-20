@@ -5,18 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2023-02-20
 
 ### Added
 
  - `--source/--target` shorthand flags for `languages` command
+ - `document` endpoint actions
+
+### Changed
+
+ - Change `TranslateOption` implementation from functional options to key-value pairs
+ - Adjust command outputs to verbosity flag count
 
 ## [0.3.0] - 2023-02-17
 
 ### Added
 
 - `version` command displaying the version and optionally commit of the cli
-- `/glossary-language-pairs` and `/glossaries` endpoints
+- `/glossary-language-pairs` and `/glossaries` endpoint actions
 
 ### Changed
 
@@ -26,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add `/usage` and `/languages` endpoints api and cli
+- Add `/usage` and `/languages` endpoint actions
 
 ### Changed
 
@@ -41,7 +47,8 @@ Initial version.
 - Add text translation api and cli
 
 
-[Unreleased]: https://github.com/cluttrdev/deepl-go/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/cluttrdev/deepl-go/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/cluttrdev/deepl-go/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/cluttrdev/deepl-go/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/cluttrdev/deepl-go/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cluttrdev/deepl-go/releases/tag/v0.1.0
