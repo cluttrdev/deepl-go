@@ -36,8 +36,8 @@ var translateCmd = &cobra.Command{
 
 		visitor := func(flag *pflag.Flag) {
 			var (
+				opt *deepl.TranslateOption
 				err error
-				opt deepl.TranslateOption
 			)
 
 			if flag.Name == "target-lang" {
@@ -74,7 +74,7 @@ var translateCmd = &cobra.Command{
 				if err != nil {
 					log.Fatal(err)
 				} else {
-					options = append(options, opt)
+					options = append(options, *opt)
 				}
 			}
 		}

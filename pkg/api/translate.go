@@ -13,97 +13,110 @@ type Translation struct {
 	Text                   string `json:"text"`
 }
 
-// TranslateOption is a functional option for configuring text translation parameters
-type TranslateOption func(url.Values)
+// TranslateOption is a key-value pair for configuring text translation parameters
+type TranslateOption struct {
+	Key   string
+	Value string
+}
 
 // The language to be translated.
 // If this parameter is omitted, the API will attempt to detect the language of the text and translate it
-func SourceLang(lang string) (TranslateOption, error) {
-	return func(vals url.Values) {
-		vals.Set("source_lang", lang)
+func SourceLang(lang string) (*TranslateOption, error) {
+	return &TranslateOption{
+		Key:   "source_lang",
+		Value: lang,
 	}, nil
 }
 
 // SplitSentences sets whether the translation engine should first split the input into sentences
-func SplitSentences(split string) (TranslateOption, error) {
+func SplitSentences(split string) (*TranslateOption, error) {
 	switch split {
 	case "0", "1", "nonewlines":
-		return func(vals url.Values) {
-			vals.Set("split_sentences", split)
+		return &TranslateOption{
+			Key:   "split-sentences",
+			Value: split,
 		}, nil
 	}
 	return nil, errors.Errorf("Invalid SplitSentence value: %s", split)
 }
 
 // PreserveFormatting sets whether the translation engine should respect the original formatting, even if it would usually correct some aspects
-func PreserveFormatting(preserve string) (TranslateOption, error) {
+func PreserveFormatting(preserve string) (*TranslateOption, error) {
 	switch preserve {
 	case "0", "1":
-		return func(vals url.Values) {
-			vals.Set("preserve_formatting", preserve)
+		return &TranslateOption{
+			Key:   "preserve_formatting",
+			Value: preserve,
 		}, nil
 	}
 	return nil, errors.Errorf("Invalid PreserveFormatting value: %s", preserve)
 }
 
 // Formality sets whether the translated text should lean towards formal or informal language
-func Formality(formality string) (TranslateOption, error) {
+func Formality(formality string) (*TranslateOption, error) {
 	switch formality {
 	case "default", "more", "less", "prefer_more", "prefer_less":
-		return func(vals url.Values) {
-			vals.Set("formality", formality)
+		return &TranslateOption{
+			Key:   "formality",
+			Value: formality,
 		}, nil
 	}
 	return nil, errors.Errorf("Invalid Formality value: %s", formality)
 }
 
 // GlossaryId specifies the glossary to use for the translation
-func GlossaryId(glossary string) (TranslateOption, error) {
-	return func(vals url.Values) {
-		vals.Set("glossary_id", glossary)
+func GlossaryId(glossary string) (*TranslateOption, error) {
+	return &TranslateOption{
+		Key:   "glossary_id",
+		Value: glossary,
 	}, nil
 }
 
 // TagHandling sets which kind of tags should be handled
-func TagHandling(handling string) (TranslateOption, error) {
+func TagHandling(handling string) (*TranslateOption, error) {
 	switch handling {
 	case "html", "xml":
-		return func(vals url.Values) {
-			vals.Set("tag_handling", handling)
+		return &TranslateOption{
+			Key:   "tag_handling",
+			Value: handling,
 		}, nil
 	}
 	return nil, errors.Errorf("Invalid TagHandling value: %s", handling)
 }
 
 // NonSplittingTags specifies a comma-separated list of XML tags which never split sentences
-func NonSplittingTags(tags string) (TranslateOption, error) {
-	return func(vals url.Values) {
-		vals.Set("non_splitting_tags", tags)
+func NonSplittingTags(tags string) (*TranslateOption, error) {
+	return &TranslateOption{
+		Key:   "non_splitting_tags",
+		Value: tags,
 	}, nil
 }
 
 // OutlineDetection can be used to disable the automatic detection of the XML structure
-func OutlineDetection(detect string) (TranslateOption, error) {
+func OutlineDetection(detect string) (*TranslateOption, error) {
 	switch detect {
 	case "0":
-		return func(vals url.Values) {
-			vals.Set("outline_detection", detect)
+		return &TranslateOption{
+			Key:   "outline_detection",
+			Value: detect,
 		}, nil
 	}
 	return nil, errors.Errorf("Invalid OutlineDetection value: %s", detect)
 }
 
 // SplittingTags specifies a comma-separated list of XML tags which always cause splts
-func SplittingTags(tags string) (TranslateOption, error) {
-	return func(vals url.Values) {
-		vals.Set("splitting_tags", tags)
+func SplittingTags(tags string) (*TranslateOption, error) {
+	return &TranslateOption{
+		Key:   "splitting_tags",
+		Value: tags,
 	}, nil
 }
 
 // IgnoeTags specifies a comma-separated list of XML tags that indicate text not to be translated
-func IgnoreTags(tags string) (TranslateOption, error) {
-	return func(vals url.Values) {
-		vals.Set("ignore_tags", tags)
+func IgnoreTags(tags string) (*TranslateOption, error) {
+	return &TranslateOption{
+		Key:   "ignore_tags",
+		Value: tags,
 	}, nil
 }
 
@@ -119,7 +132,7 @@ func (t *Translator) TranslateText(texts []string, targetLang string, options ..
 
 	// Apply translation parameter options
 	for _, opt := range options {
-		opt(vals)
+		vals.Set(opt.Key, opt.Value)
 	}
 
 	res, err := t.callAPI("POST", "translate", vals, nil)
