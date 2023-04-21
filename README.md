@@ -49,10 +49,27 @@ fmt.Println(translations[0].Text)  // "Bonjour, le monde !"
 
 ### Installation
 
-Using the Go tools:
+Your can install the `deepl` command line tool using a prebuilt
+[binary](https://github.com/cluttrdev/deepl-go/releases), e.g. like this:
 
 ```shell
-go install github.com/cluttrdev/deepl-go/cmd/deepl
+# determine latest release
+VERSION=$(curl -sSL https://api.github.com/repos/cluttrdev/deepl-go/releases/latest | jq -r '.tag_name')
+
+# download
+OS=linux
+ARCH=x86_64
+curl -LO https://github.com/cluttrdev/deepl-go/releases/download/${VERSION}/deepl_${VERSION}_${OS}_${ARCH}.tar.gz
+
+# extract and install (requires privileges)
+BIN_DIR=/usr/local/bin
+tar -zxf deepl_${VERSION}_${OS}_${ARCH}.tar.gz -C ${BIN_DIR} deepl
+```
+
+Alternatively, you can use the Go tools:
+
+```shell
+go install github.com/cluttrdev/deepl-go/cmd/deepl@latest
 ```
 
 ### Usage
