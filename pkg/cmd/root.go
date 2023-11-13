@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	deepl "github.com/cluttrdev/deepl-go/pkg/api"
+	deepl "github.com/cluttrdev/deepl-go/api"
 )
 
 var translator *deepl.Translator

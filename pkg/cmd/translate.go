@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	deepl "github.com/cluttrdev/deepl-go/pkg/api"
+	deepl "github.com/cluttrdev/deepl-go/api"
 )
 
 var (
