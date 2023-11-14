@@ -22,24 +22,20 @@ type Translator struct {
 // TranslatorOption is a functional option for configuring the Translator
 type TranslatorOption func(*Translator) error
 
-// ServerURL allows overriding the default server url
-func ServerURL(url string) TranslatorOption {
+// WithServerURL allows overriding the default server url
+func WithServerURL(url string) TranslatorOption {
 	return func(t *Translator) error {
 		t.serverURL = url
 		return nil
 	}
 }
 
-// parseOptions apllies the supplied functional options to the Translator
-func (t *Translator) parseOptions(opts ...TranslatorOption) error {
-	for _, opt := range opts {
-		err := opt(t)
-		if err != nil {
-			return err
-		}
+// WithHTTPClient allows overriding the default http client
+func WithHTTPClient(c HTTPClient) TranslatorOption {
+	return func(t *Translator) error {
+		t.client = c
+		return nil
 	}
-
-	return nil
 }
 
 // NewTranslator creates a new translator
@@ -52,23 +48,32 @@ func NewTranslator(authKey string, opts ...TranslatorOption) (*Translator, error
 		serverURL = ServerURLPro
 	}
 
-	// Set up default http client
-	timeout := time.Second * 30
-
+	// Set up with default http client
 	t := &Translator{
 		client: &http.Client{
-			Timeout: timeout,
+			Timeout: 10 * time.Second,
 		},
 		serverURL: serverURL,
 		authKey:   authKey,
 	}
 
-	// Parse and apply options
-	if err := t.parseOptions(opts...); err != nil {
+	if err := t.applyOptions(opts...); err != nil {
 		return nil, err
 	}
 
 	return t, nil
+}
+
+// applyOptions apllies the supplied functional options to the Translator
+func (t *Translator) applyOptions(opts ...TranslatorOption) error {
+	for _, opt := range opts {
+		err := opt(t)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // callAPI calls the supplied API endpoint with the provided parameters and returns the response
