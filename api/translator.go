@@ -14,9 +14,9 @@ const (
 )
 
 type Translator struct {
-	httpClient *Client
-	serverURL  string
-	authKey    string
+	client    HTTPClient
+	serverURL string
+	authKey   string
 }
 
 // TranslatorOption is a functional option for configuring the Translator
@@ -54,12 +54,13 @@ func NewTranslator(authKey string, opts ...TranslatorOption) (*Translator, error
 
 	// Set up default http client
 	timeout := time.Second * 30
-	httpClient := NewClient(timeout)
 
 	t := &Translator{
-		httpClient: httpClient,
-		serverURL:  serverURL,
-		authKey:    authKey,
+		client: &http.Client{
+			Timeout: timeout,
+		},
+		serverURL: serverURL,
+		authKey:   authKey,
 	}
 
 	// Parse and apply options
@@ -82,9 +83,18 @@ func (t *Translator) callAPI(method string, endpoint string, data url.Values, he
 		headers.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
-	res, err := t.httpClient.do(method, url, data, headers)
+	req, err := http.NewRequest(method, url, strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
 
-	return res, err
+	for k, vs := range headers {
+		for _, v := range vs {
+			req.Header.Add(k, v)
+		}
+	}
+
+	return t.client.Do(req)
 }
 
 // authKeyIsFreeAccount determines whether the supplied auth key belongs to a Free account

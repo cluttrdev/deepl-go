@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	table "github.com/cluttrdev/deepl-go/internal"
 	deepl "github.com/cluttrdev/deepl-go/api"
+	table "github.com/cluttrdev/deepl-go/internal"
 )
 
 var documentCmd = &cobra.Command{

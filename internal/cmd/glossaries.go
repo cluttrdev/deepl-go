@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	table "github.com/cluttrdev/deepl-go/internal"
 	deepl "github.com/cluttrdev/deepl-go/api"
+	table "github.com/cluttrdev/deepl-go/internal"
 )
 
 var glossaryCmd = &cobra.Command{

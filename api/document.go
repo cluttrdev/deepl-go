@@ -81,7 +81,7 @@ func (t *Translator) TranslateDocumentUpload(filePath string, targetLang string,
 	req.Header.Set("Authorization", fmt.Sprintf("DeepL-Auth-Key %s", t.authKey))
 	req.Header.Add("Content-Type", mpw.FormDataContentType())
 
-	res, err := t.httpClient.httpClient.Do(req)
+	res, err := t.client.Do(req)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {
