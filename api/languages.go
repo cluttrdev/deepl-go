@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type Language struct {
@@ -24,7 +25,10 @@ func (t *Translator) GetLanguages(langType string) ([]Language, error) {
 		vals.Set("type", langType)
 	}
 
-	res, err := t.callAPI("GET", "languages", vals, nil)
+	data := vals.Encode()
+	body := strings.NewReader(data)
+
+	res, err := t.callAPI(http.MethodGet, "languages", nil, body)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {
@@ -41,7 +45,7 @@ func (t *Translator) GetLanguages(langType string) ([]Language, error) {
 }
 
 func (t *Translator) GetGlossaryLanguagePairs() ([]LanguagePair, error) {
-	res, err := t.callAPI("GET", "glossary-language-pairs", nil, nil)
+	res, err := t.callAPI(http.MethodGet, "glossary-language-pairs", nil, nil)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {

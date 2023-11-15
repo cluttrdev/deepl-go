@@ -15,7 +15,7 @@ type Usage struct {
 }
 
 func (t *Translator) GetUsage() (*Usage, error) {
-	res, err := t.callAPI("GET", "usage", nil, nil)
+	res, err := t.callAPI(http.MethodGet, "usage", nil, nil)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {

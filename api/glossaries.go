@@ -38,7 +38,12 @@ func (t *Translator) CreateGlossary(name string, sourceLang string, targetLang s
 	}
 	vals.Set("entries", strings.Join(entriesTSV, "\n"))
 
-	res, err := t.callAPI("POST", "glossaries", vals, nil)
+	headers := make(http.Header)
+	headers.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	body := strings.NewReader(vals.Encode())
+
+	res, err := t.callAPI(http.MethodPost, "glossaries", headers, body)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusCreated {
@@ -55,7 +60,7 @@ func (t *Translator) CreateGlossary(name string, sourceLang string, targetLang s
 }
 
 func (t *Translator) ListGlossaries() ([]GlossaryInfo, error) {
-	res, err := t.callAPI("GET", "glossaries", nil, nil)
+	res, err := t.callAPI(http.MethodGet, "glossaries", nil, nil)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {
@@ -76,7 +81,7 @@ func (t *Translator) ListGlossaries() ([]GlossaryInfo, error) {
 func (t *Translator) GetGlossary(glossaryId string) (*GlossaryInfo, error) {
 	endpoint := fmt.Sprintf("glossaries/%s", glossaryId)
 
-	res, err := t.callAPI("GET", endpoint, nil, nil)
+	res, err := t.callAPI(http.MethodGet, endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {
@@ -95,7 +100,7 @@ func (t *Translator) GetGlossary(glossaryId string) (*GlossaryInfo, error) {
 func (t *Translator) DeleteGlossary(glossaryId string) error {
 	endpoint := fmt.Sprintf("glossaries/%s", glossaryId)
 
-	res, err := t.callAPI("DELETE", endpoint, nil, nil)
+	res, err := t.callAPI(http.MethodDelete, endpoint, nil, nil)
 	if err != nil {
 		return err
 	} else if res.StatusCode != http.StatusNoContent {
@@ -112,7 +117,7 @@ func (t *Translator) GetGlossaryEntries(glossaryId string) ([]GlossaryEntry, err
 	headers := http.Header{}
 	headers.Set("Accept", "text/tab-separated-values")
 
-	res, err := t.callAPI("GET", endpoint, nil, headers)
+	res, err := t.callAPI(http.MethodGet, endpoint, headers, nil)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {

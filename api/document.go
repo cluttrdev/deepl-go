@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type DocumentInfo struct {
@@ -27,7 +28,7 @@ type DocumentStatus struct {
 	Message          string `json:"message"`
 }
 
-func (t *Translator) TranslateDocumentUpload(filePath string, targetLang string, options ...TranslateOption) (*DocumentInfo, error) {
+func (t *Translator) TranslateDocumentUpload(filePath string, targetLang string, opts ...TranslateOptionFunc) (*DocumentInfo, error) {
 	var (
 		err error
 		f   *os.File
@@ -41,6 +42,11 @@ func (t *Translator) TranslateDocumentUpload(filePath string, targetLang string,
 		log.Fatal(err)
 	}
 
+	options := TranslateOptions{}
+	if err := options.Gather(opts...); err != nil {
+		return nil, fmt.Errorf("error gathering options: %w", err)
+	}
+
 	r, w := io.Pipe()
 	mpw := multipart.NewWriter(w)
 	go func() {
@@ -52,10 +58,10 @@ func (t *Translator) TranslateDocumentUpload(filePath string, targetLang string,
 		mpw.WriteField("filename", filepath.Base(filePath))
 		mpw.WriteField("target_lang", targetLang)
 
-		for _, opt := range options {
-			switch opt.Key {
+		for name, value := range options {
+			switch name {
 			case "source_lang", "formality", "glossary_id":
-				mpw.WriteField(opt.Key, opt.Value)
+				mpw.WriteField(name, value)
 			}
 		}
 
@@ -71,17 +77,10 @@ func (t *Translator) TranslateDocumentUpload(filePath string, targetLang string,
 		}
 	}()
 
-	url := fmt.Sprintf("%s/%s", t.serverURL, "document")
+	headers := make(http.Header)
+	headers.Set("Content-Type", mpw.FormDataContentType())
 
-	req, err := http.NewRequest("POST", url, r)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	req.Header.Set("Authorization", fmt.Sprintf("DeepL-Auth-Key %s", t.authKey))
-	req.Header.Add("Content-Type", mpw.FormDataContentType())
-
-	res, err := t.client.Do(req)
+	res, err := t.callAPI(http.MethodPost, "document", headers, r)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {
@@ -103,7 +102,9 @@ func (t *Translator) TranslateDocumentStatus(id string, key string) (*DocumentSt
 	vals := make(url.Values)
 	vals.Set("document_key", key)
 
-	res, err := t.callAPI("POST", endpoint, vals, nil)
+	body := strings.NewReader(vals.Encode())
+
+	res, err := t.callAPI(http.MethodPost, endpoint, nil, body)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {
@@ -125,7 +126,9 @@ func (t *Translator) TranslateDocumentDownload(id string, key string) (*io.PipeR
 	vals := make(url.Values)
 	vals.Set("document_key", key)
 
-	res, err := t.callAPI("POST", endpoint, vals, nil)
+	body := strings.NewReader(vals.Encode())
+
+	res, err := t.callAPI(http.MethodPost, endpoint, nil, body)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {

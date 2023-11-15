@@ -2,8 +2,8 @@ package deepl
 
 import (
 	"fmt"
+	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -77,25 +77,18 @@ func (t *Translator) applyOptions(opts ...TranslatorOption) error {
 }
 
 // callAPI calls the supplied API endpoint with the provided parameters and returns the response
-func (t *Translator) callAPI(method string, endpoint string, data url.Values, headers http.Header) (*http.Response, error) {
+func (t *Translator) callAPI(method string, endpoint string, headers http.Header, body io.Reader) (*http.Response, error) {
 	url := fmt.Sprintf("%s/%s", t.serverURL, endpoint)
 
-	if headers == nil {
-		headers = make(http.Header)
-	}
-	headers.Set("Authorization", fmt.Sprintf("DeepL-Auth-Key %s", t.authKey))
-	if _, ok := headers["Content-Type"]; !ok {
-		headers.Set("Content-Type", "application/x-www-form-urlencoded")
-	}
-
-	req, err := http.NewRequest(method, url, strings.NewReader(data.Encode()))
+	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
+	req.Header.Set("Authorization", fmt.Sprintf("DeepL-Auth-Key %s", t.authKey))
 	for k, vs := range headers {
 		for _, v := range vs {
-			req.Header.Add(k, v)
+			req.Header.Set(k, v)
 		}
 	}
 
