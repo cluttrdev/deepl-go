@@ -18,10 +18,11 @@ func (t *Translator) GetUsage() (*Usage, error) {
 	res, err := t.callAPI(http.MethodGet, "usage", nil, nil)
 	if err != nil {
 		return nil, err
-	} else if res.StatusCode != http.StatusOK {
-		return nil, HTTPError{StatusCode: res.StatusCode}
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, httpError(res.StatusCode)
+	}
 
 	var usage Usage
 	if err := json.NewDecoder(res.Body).Decode(&usage); err != nil {

@@ -46,10 +46,11 @@ func (t *Translator) CreateGlossary(name string, sourceLang string, targetLang s
 	res, err := t.callAPI(http.MethodPost, "glossaries", headers, body)
 	if err != nil {
 		return nil, err
-	} else if res.StatusCode != http.StatusCreated {
-		return nil, HTTPError{StatusCode: res.StatusCode}
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusCreated {
+		return nil, httpError(res.StatusCode)
+	}
 
 	var glossary GlossaryInfo
 	if err := json.NewDecoder(res.Body).Decode(&glossary); err != nil {
@@ -63,10 +64,11 @@ func (t *Translator) ListGlossaries() ([]GlossaryInfo, error) {
 	res, err := t.callAPI(http.MethodGet, "glossaries", nil, nil)
 	if err != nil {
 		return nil, err
-	} else if res.StatusCode != http.StatusOK {
-		return nil, HTTPError{StatusCode: res.StatusCode}
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, httpError(res.StatusCode)
+	}
 
 	var response struct {
 		Glossaries []GlossaryInfo `json:"glossaries"`
@@ -84,10 +86,11 @@ func (t *Translator) GetGlossary(glossaryId string) (*GlossaryInfo, error) {
 	res, err := t.callAPI(http.MethodGet, endpoint, nil, nil)
 	if err != nil {
 		return nil, err
-	} else if res.StatusCode != http.StatusOK {
-		return nil, HTTPError{StatusCode: res.StatusCode}
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, httpError(res.StatusCode)
+	}
 
 	var glossary GlossaryInfo
 	if err := json.NewDecoder(res.Body).Decode(&glossary); err != nil {
@@ -103,10 +106,11 @@ func (t *Translator) DeleteGlossary(glossaryId string) error {
 	res, err := t.callAPI(http.MethodDelete, endpoint, nil, nil)
 	if err != nil {
 		return err
-	} else if res.StatusCode != http.StatusNoContent {
-		return HTTPError{StatusCode: res.StatusCode}
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusNoContent {
+		return httpError(res.StatusCode)
+	}
 
 	return nil
 }
@@ -114,16 +118,17 @@ func (t *Translator) DeleteGlossary(glossaryId string) error {
 func (t *Translator) GetGlossaryEntries(glossaryId string) ([]GlossaryEntry, error) {
 	endpoint := fmt.Sprintf("glossaries/%s/entries", glossaryId)
 
-	headers := http.Header{}
+	headers := make(http.Header)
 	headers.Set("Accept", "text/tab-separated-values")
 
 	res, err := t.callAPI(http.MethodGet, endpoint, headers, nil)
 	if err != nil {
 		return nil, err
-	} else if res.StatusCode != http.StatusOK {
-		return nil, HTTPError{StatusCode: res.StatusCode}
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, httpError(res.StatusCode)
+	}
 
 	r := csv.NewReader(res.Body)
 	r.Comma = '\t'

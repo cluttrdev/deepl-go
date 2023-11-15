@@ -1,7 +1,7 @@
 package deepl
 
 import (
-    "fmt"
+	"fmt"
 )
 
 type TranslateOptions map[string]string
@@ -290,4 +290,3 @@ func WithIgnoreTags(value string) TranslateOptionFunc {
 		return nil
 	}
 }
-

@@ -9,15 +9,14 @@ type HTTPClient interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
-type HTTPError struct {
-	StatusCode int
-}
-
-func (err HTTPError) Error() string {
-	switch err.StatusCode {
+func httpError(statusCode int) error {
+	var statusText string
+	switch statusCode {
 	case 456:
-		return fmt.Sprintf("%d - %s", err.StatusCode, "Quota exceeded. The character limit has been reached.")
+		statusText = "Quota exceeded. The character limit has been reached."
 	default:
-		return fmt.Sprintf("%d - %s", err.StatusCode, http.StatusText(err.StatusCode))
+		statusText = http.StatusText(statusCode)
 	}
+
+	return fmt.Errorf("%d - %s", statusCode, statusText)
 }

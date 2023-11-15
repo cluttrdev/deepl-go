@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -28,52 +27,61 @@ type DocumentStatus struct {
 	Message          string `json:"message"`
 }
 
-func (t *Translator) TranslateDocumentUpload(filePath string, targetLang string, opts ...TranslateOptionFunc) (*DocumentInfo, error) {
-	var (
-		err error
-		f   *os.File
-		fi  os.FileInfo
-	)
-
-	if f, err = os.Open(filePath); err != nil {
-		log.Fatal(err)
-	}
-	if fi, err = f.Stat(); err != nil {
-		log.Fatal(err)
-	}
-
+func (t *Translator) TranslateDocumentUpload(path string, targetLang string, opts ...TranslateOptionFunc) (*DocumentInfo, error) {
+	// Gather translate options
 	options := TranslateOptions{}
 	if err := options.Gather(opts...); err != nil {
 		return nil, fmt.Errorf("error gathering options: %w", err)
 	}
 
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("error opening file: %w", err)
+	}
+
 	r, w := io.Pipe()
 	mpw := multipart.NewWriter(w)
+	errchan := make(chan error)
 	go func() {
-		var part io.Writer
-
 		defer w.Close()
 		defer f.Close()
+		defer close(errchan)
 
-		mpw.WriteField("filename", filepath.Base(filePath))
-		mpw.WriteField("target_lang", targetLang)
+		var part io.Writer
+
+		filename := filepath.Base(path)
+
+		if err := mpw.WriteField("filename", filename); err != nil {
+			errchan <- fmt.Errorf("error writing form field: %w", err)
+			return
+		}
+		if err := mpw.WriteField("target_lang", targetLang); err != nil {
+			errchan <- fmt.Errorf("error writing form field: %w", err)
+			return
+		}
 
 		for name, value := range options {
 			switch name {
 			case "source_lang", "formality", "glossary_id":
-				mpw.WriteField(name, value)
+				if err := mpw.WriteField(name, value); err != nil {
+					errchan <- fmt.Errorf("error writing form field: %w", err)
+					return
+				}
 			}
 		}
 
-		if part, err = mpw.CreateFormFile("file", filepath.Base(fi.Name())); err != nil {
-			log.Fatal(err)
+		if part, err = mpw.CreateFormFile("file", filename); err != nil {
+			errchan <- fmt.Errorf("error creating form file: %w", err)
+			return
 		}
 		if _, err = io.Copy(part, f); err != nil {
-			log.Fatal(err)
+			errchan <- fmt.Errorf("error writing file: %w", err)
+			return
 		}
 
 		if err = mpw.Close(); err != nil {
-			log.Fatal(err)
+			errchan <- fmt.Errorf("error closing multipart writer: %w", err)
+			return
 		}
 	}()
 
@@ -81,12 +89,17 @@ func (t *Translator) TranslateDocumentUpload(filePath string, targetLang string,
 	headers.Set("Content-Type", mpw.FormDataContentType())
 
 	res, err := t.callAPI(http.MethodPost, "document", headers, r)
+	merr := <-errchan
 	if err != nil {
 		return nil, err
-	} else if res.StatusCode != http.StatusOK {
-		return nil, HTTPError{StatusCode: res.StatusCode}
 	}
 	defer res.Body.Close()
+	if merr != nil {
+		return nil, merr
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, httpError(res.StatusCode)
+	}
 
 	var document DocumentInfo
 	if err := json.NewDecoder(res.Body).Decode(&document); err != nil {
@@ -102,15 +115,19 @@ func (t *Translator) TranslateDocumentStatus(id string, key string) (*DocumentSt
 	vals := make(url.Values)
 	vals.Set("document_key", key)
 
+	headers := make(http.Header)
+	headers.Set("Content-Type", "application/x-www-form-urlencoded")
+
 	body := strings.NewReader(vals.Encode())
 
-	res, err := t.callAPI(http.MethodPost, endpoint, nil, body)
+	res, err := t.callAPI(http.MethodPost, endpoint, headers, body)
 	if err != nil {
 		return nil, err
-	} else if res.StatusCode != http.StatusOK {
-		return nil, HTTPError{StatusCode: res.StatusCode}
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, httpError(res.StatusCode)
+	}
 
 	var status DocumentStatus
 	if err := json.NewDecoder(res.Body).Decode(&status); err != nil {
@@ -126,13 +143,18 @@ func (t *Translator) TranslateDocumentDownload(id string, key string) (*io.PipeR
 	vals := make(url.Values)
 	vals.Set("document_key", key)
 
+	headers := make(http.Header)
+	headers.Set("Content-Type", "application/x-www-form-urlencoded")
+
 	body := strings.NewReader(vals.Encode())
 
-	res, err := t.callAPI(http.MethodPost, endpoint, nil, body)
+	res, err := t.callAPI(http.MethodPost, endpoint, headers, body)
 	if err != nil {
 		return nil, err
-	} else if res.StatusCode != http.StatusOK {
-		return nil, HTTPError{StatusCode: res.StatusCode}
+	}
+	if res.StatusCode != http.StatusOK {
+		defer res.Body.Close()
+		return nil, httpError(res.StatusCode)
 	}
 
 	r, w := io.Pipe()
@@ -141,7 +163,7 @@ func (t *Translator) TranslateDocumentDownload(id string, key string) (*io.PipeR
 		defer res.Body.Close()
 
 		if _, err := io.Copy(w, res.Body); err != nil {
-			log.Fatal(err)
+			_ = w.CloseWithError(err) // always returns nil
 		}
 	}()
 

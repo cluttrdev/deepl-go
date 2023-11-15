@@ -41,7 +41,7 @@ func (t *Translator) TranslateText(text []string, targetLang string, opts ...Tra
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP Error: %w", HTTPError{StatusCode: res.StatusCode})
+		return nil, httpError(res.StatusCode)
 	}
 	defer res.Body.Close()
 
