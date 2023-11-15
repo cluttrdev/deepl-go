@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -32,14 +31,9 @@ var translateCmd = &cobra.Command{
 	Long:  "",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		options := []deepl.TranslateOption{}
+		options := []deepl.TranslateOptionFunc{}
 
 		visitor := func(flag *pflag.Flag) {
-			var (
-				opt *deepl.TranslateOption
-				err error
-			)
-
 			if flag.Name == "target-lang" {
 				return
 			}
@@ -47,34 +41,25 @@ var translateCmd = &cobra.Command{
 			if flag.Changed {
 				switch flag.Name {
 				case "source-lang":
-					opt, err = deepl.SourceLang(flag.Value.String())
+					options = append(options, deepl.WithSourceLang(flag.Value.String()))
 				case "split-sentences":
-					opt, err = deepl.SplitSentences(flag.Value.String())
+					options = append(options, deepl.WithSplitSentences(flag.Value.String()))
 				case "preserve-formatting":
-					opt, err = deepl.PreserveFormatting(flag.Value.String())
+					options = append(options, deepl.WithPreserveFormatting(flag.Value.String()))
 				case "formality":
-					opt, err = deepl.Formality(flag.Value.String())
+					options = append(options, deepl.WithFormality(flag.Value.String()))
 				case "glossary-id":
-					opt, err = deepl.GlossaryId(flag.Value.String())
+					options = append(options, deepl.WithGlossaryId(flag.Value.String()))
 				case "tag-handling":
-					opt, err = deepl.TagHandling(flag.Value.String())
+					options = append(options, deepl.WithTagHandling(flag.Value.String()))
 				case "non-splitting-tags":
-					opt, err = deepl.NonSplittingTags(flag.Value.String())
+					options = append(options, deepl.WithNonSplittingTags(flag.Value.String()))
 				case "outline-detection":
-					opt, err = deepl.OutlineDetection(flag.Value.String())
+					options = append(options, deepl.WithOutlineDetection(flag.Value.String()))
 				case "splitting-tags":
-					opt, err = deepl.SplittingTags(flag.Value.String())
+					options = append(options, deepl.WithSplittingTags(flag.Value.String()))
 				case "ignore-tags":
-					opt, err = deepl.IgnoreTags(flag.Value.String())
-
-				default:
-					opt, err = nil, errors.Errorf("Invalid option: %s", flag.Name)
-				}
-
-				if err != nil {
-					log.Fatal(err)
-				} else {
-					options = append(options, *opt)
+					options = append(options, deepl.WithIgnoreTags(flag.Value.String()))
 				}
 			}
 		}

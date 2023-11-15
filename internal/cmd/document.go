@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -25,14 +24,9 @@ var documentUploadCmd = &cobra.Command{
 	Short: "Upload a document for translation",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		options := []deepl.TranslateOption{}
+		options := []deepl.TranslateOptionFunc{}
 
 		visitor := func(flag *pflag.Flag) {
-			var (
-				opt *deepl.TranslateOption
-				err error
-			)
-
 			if flag.Name == "target-lang" {
 				return
 			}
@@ -40,20 +34,11 @@ var documentUploadCmd = &cobra.Command{
 			if flag.Changed {
 				switch flag.Name {
 				case "source-lang":
-					opt, err = deepl.SourceLang(flag.Value.String())
+					options = append(options, deepl.WithSourceLang(flag.Value.String()))
 				case "formality":
-					opt, err = deepl.Formality(flag.Value.String())
+					options = append(options, deepl.WithFormality(flag.Value.String()))
 				case "glossary_id":
-					opt, err = deepl.GlossaryId(flag.Value.String())
-
-				default:
-					opt, err = nil, errors.Errorf("Invalid option: %s", flag.Name)
-				}
-
-				if err != nil {
-					log.Fatal(err)
-				} else {
-					options = append(options, *opt)
+					options = append(options, deepl.WithGlossaryId(flag.Value.String()))
 				}
 			}
 		}
