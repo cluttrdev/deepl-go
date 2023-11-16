@@ -1,15 +1,14 @@
 package deepl
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type DocumentInfo struct {
@@ -27,11 +26,22 @@ type DocumentStatus struct {
 	Message          string `json:"message"`
 }
 
-func (t *Translator) TranslateDocumentUpload(path string, targetLang string, opts ...TranslateOptionFunc) (*DocumentInfo, error) {
+func (t *Translator) TranslateDocumentUpload(path string, targetLang string, opts ...TranslateOption) (*DocumentInfo, error) {
+	const (
+		endpoint string = "document"
+		method   string = http.MethodPost
+	)
+
 	// Gather translate options
 	options := TranslateOptions{}
 	if err := options.Gather(opts...); err != nil {
 		return nil, fmt.Errorf("error gathering options: %w", err)
+	}
+
+	fields := map[string]*string{
+		"source_lang": options.SourceLang,
+		"formality":   options.Formality,
+		"glossary_id": options.GlossaryID,
 	}
 
 	f, err := os.Open(path)
@@ -60,13 +70,14 @@ func (t *Translator) TranslateDocumentUpload(path string, targetLang string, opt
 			return
 		}
 
-		for name, value := range options {
-			switch name {
-			case "source_lang", "formality", "glossary_id":
-				if err := mpw.WriteField(name, value); err != nil {
-					errchan <- fmt.Errorf("error writing form field: %w", err)
-					return
-				}
+		for name, value := range fields {
+			if value == nil {
+				continue
+			}
+
+			if err := mpw.WriteField(name, *value); err != nil {
+				errchan <- fmt.Errorf("error writing form field: %w", err)
+				return
 			}
 		}
 
@@ -75,7 +86,7 @@ func (t *Translator) TranslateDocumentUpload(path string, targetLang string, opt
 			return
 		}
 		if _, err = io.Copy(part, f); err != nil {
-			errchan <- fmt.Errorf("error writing file: %w", err)
+			errchan <- fmt.Errorf("error writing form file: %w", err)
 			return
 		}
 
@@ -88,7 +99,7 @@ func (t *Translator) TranslateDocumentUpload(path string, targetLang string, opt
 	headers := make(http.Header)
 	headers.Set("Content-Type", mpw.FormDataContentType())
 
-	res, err := t.callAPI(http.MethodPost, "document", headers, r)
+	res, err := t.callAPI(method, endpoint, headers, r)
 	merr := <-errchan
 	if err != nil {
 		return nil, err
@@ -110,17 +121,24 @@ func (t *Translator) TranslateDocumentUpload(path string, targetLang string, opt
 }
 
 func (t *Translator) TranslateDocumentStatus(id string, key string) (*DocumentStatus, error) {
-	endpoint := fmt.Sprintf("document/%s", id)
+	var endpoint string = fmt.Sprintf("document/%s", id)
+	const method string = http.MethodPost
 
-	vals := make(url.Values)
-	vals.Set("document_key", key)
+	data := struct {
+		DocumentKey string `json:"document_key"`
+	}{
+		DocumentKey: key,
+	}
 
 	headers := make(http.Header)
-	headers.Set("Content-Type", "application/x-www-form-urlencoded")
+	headers.Set("Content-Type", "application/json")
 
-	body := strings.NewReader(vals.Encode())
+	body, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding request data: %w", err)
+	}
 
-	res, err := t.callAPI(http.MethodPost, endpoint, headers, body)
+	res, err := t.callAPI(method, endpoint, headers, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -138,17 +156,24 @@ func (t *Translator) TranslateDocumentStatus(id string, key string) (*DocumentSt
 }
 
 func (t *Translator) TranslateDocumentDownload(id string, key string) (*io.PipeReader, error) {
-	endpoint := fmt.Sprintf("document/%s/result", id)
+	var endpoint string = fmt.Sprintf("document/%s/result", id)
+	const method string = http.MethodPost
 
-	vals := make(url.Values)
-	vals.Set("document_key", key)
+	data := struct {
+		DocumentKey string `json:"document_key"`
+	}{
+		DocumentKey: key,
+	}
 
 	headers := make(http.Header)
-	headers.Set("Content-Type", "application/x-www-form-urlencoded")
+	headers.Set("Content-Type", "application/json")
 
-	body := strings.NewReader(vals.Encode())
+	body, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding request data: %w", err)
+	}
 
-	res, err := t.callAPI(http.MethodPost, endpoint, headers, body)
+	res, err := t.callAPI(method, endpoint, headers, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}

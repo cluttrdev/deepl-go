@@ -4,30 +4,36 @@ import (
 	"fmt"
 )
 
-type TranslateOptions map[string]string
+type TranslateOptions struct {
+	SourceLang         *string   `json:"source_lang,omitempty"`
+	SplitSentences     *string   `json:"split_sentences,omitempty"`
+	PreserveFormatting *bool     `json:"preserve_formatting,omitempty"`
+	Formality          *string   `json:"formality,omitempty"`
+	GlossaryID         *string   `json:"glossary_id,omitempty"`
+	TagHandling        *string   `json:"tag_handling,omitempty"`
+	OutlineDetection   *bool     `json:"outline_detection,omitempty"`
+	NonSplittingTags   []*string `json:"non_splitting_tags,omitempty"`
+	SplittingTags      []*string `json:"splitting_tags,omitempty"`
+	IgnoreTags         []*string `json:"ignore_tags,omitempty"`
+}
 
-func (o TranslateOptions) Gather(opts ...TranslateOptionFunc) error {
-	for _, optfunc := range opts {
-		if err := optfunc(o); err != nil {
+func (o *TranslateOptions) Gather(opts ...TranslateOption) error {
+	for _, option := range opts {
+		if err := option(o); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// TranslateOptionFunc can be used to customize the translation engine.
-type TranslateOptionFunc func(TranslateOptions) error
-
-func translateOptionInvalidValueError(name string, value string) error {
-	return fmt.Errorf("Invalid value for option `%s`: %s", name, value)
-}
+// TranslateOption can be used to customize the translation engine.
+type TranslateOption func(*TranslateOptions) error
 
 // WithSourceLang specifies the language of the text to be translated.
 // If this parameter is omitted, the API will attempt to detect the language of the text and translate it
-func WithSourceLang(value string) TranslateOptionFunc {
-	const name string = "source_lang"
-	return func(o TranslateOptions) error {
-		o[name] = value
+func WithSourceLang(value string) TranslateOption {
+	return func(o *TranslateOptions) error {
+		o.SourceLang = &value
 		return nil
 	}
 }
@@ -58,15 +64,14 @@ func WithSourceLang(value string) TranslateOptionFunc {
 // Please note that newlines will split sentences when `split_sentences=1`. We
 // recommend cleaning files so they don't contain breaking sentences or setting
 // the parameter `split_sentences` to `nonewlines`.
-func WithSplitSentences(value string) TranslateOptionFunc {
-	const name string = "split_sentence"
-	return func(o TranslateOptions) error {
+func WithSplitSentences(value string) TranslateOption {
+	return func(o *TranslateOptions) error {
 		switch value {
 		case "0", "1", "nonewlines":
-			o[name] = value
+			o.SplitSentences = &value
 			return nil
 		}
-		return translateOptionInvalidValueError(name, value)
+		return translateOptionInvalidValueError("split_sentences", value)
 	}
 }
 
@@ -76,15 +81,10 @@ func WithSplitSentences(value string) TranslateOptionFunc {
 // The formatting aspects affected by this setting include:
 //   - Punctuation at the beginning and end of the sentence
 //   - Upper/lower case at the beginning of the sentence
-func WithPreserveFormatting(value string) TranslateOptionFunc {
-	const name string = "preserve_formatting"
-	return func(o TranslateOptions) error {
-		switch value {
-		case "0", "1":
-			o[name] = value
-			return nil
-		}
-		return translateOptionInvalidValueError(name, value)
+func WithPreserveFormatting(value bool) TranslateOption {
+	return func(o *TranslateOptions) error {
+		o.PreserveFormatting = &value
+		return nil
 	}
 }
 
@@ -107,26 +107,24 @@ func WithPreserveFormatting(value string) TranslateOptionFunc {
 //   - `prefer_less` - for a more informal language if available, otherwise fallback to default formality
 //
 // [formality-japanese]: https://support.deepl.com/hc/en-us/articles/6306700061852-About-the-plain-polite-feature-in-Japanese
-func WithFormality(value string) TranslateOptionFunc {
-	const name string = "formality"
-	return func(o TranslateOptions) error {
+func WithFormality(value string) TranslateOption {
+	return func(o *TranslateOptions) error {
 		switch value {
 		case "default", "more", "less", "prefer_more", "prefer_less":
-			o[name] = value
+			o.Formality = &value
 			return nil
 		}
-		return translateOptionInvalidValueError(name, value)
+		return translateOptionInvalidValueError("formality", value)
 	}
 }
 
-// WithGlossaryId specifies the glossary to use for the translation.
+// WithGlossaryID specifies the glossary to use for the translation.
 //
 // *Important*: This requires the `source_lang` parameter to be set and the
 // language pair of the glossary has to match the language pair of the request.
-func WithGlossaryId(value string) TranslateOptionFunc {
-	const name string = "glossary_id"
-	return func(o TranslateOptions) error {
-		o[name] = value
+func WithGlossaryID(value string) TranslateOption {
+	return func(o *TranslateOptions) error {
+		o.GlossaryID = &value
 		return nil
 	}
 }
@@ -139,15 +137,14 @@ func WithGlossaryId(value string) TranslateOptionFunc {
 //
 // [xml-handling]: https://www.deepl.com/docs-api/xml
 // [html-handling]: https://www.deepl.com/docs-api/html
-func WithTagHandling(value string) TranslateOptionFunc {
-	const name string = "tag_handling"
-	return func(o TranslateOptions) error {
+func WithTagHandling(value string) TranslateOption {
+	return func(o *TranslateOptions) error {
 		switch value {
 		case "html", "xml":
-			o[name] = value
+			o.TagHandling = &value
 			return nil
 		}
-		return translateOptionInvalidValueError(name, value)
+		return translateOptionInvalidValueError("tag_handling", value)
 	}
 }
 
@@ -197,19 +194,14 @@ func WithTagHandling(value string) TranslateOptionFunc {
 //
 // While this approach is slightly more complicated, it allows for greater
 // control over the structure of the translation output.
-func WithOutlineDetection(value string) TranslateOptionFunc {
-	const name string = "outline_detection"
-	return func(o TranslateOptions) error {
-		switch value {
-		case "0":
-			o[name] = value
-			return nil
-		}
-		return translateOptionInvalidValueError(name, value)
+func WithOutlineDetection(value bool) TranslateOption {
+	return func(o *TranslateOptions) error {
+		o.OutlineDetection = &value
+		return nil
 	}
 }
 
-// WithNonSplittingTags specifies a comma-separated list of XML tags which
+// WithNonSplittingTags specifies a list of XML tags which
 // never split sentences.
 //
 // For some XML files, finding tags with textual content and splitting
@@ -246,27 +238,29 @@ func WithOutlineDetection(value string) TranslateOptionFunc {
 // considered markup and copied into the translated sentence. As the
 // translation of the words "had been" has moved to another position in the
 // German sentence, the two `par` tags are duplicated (which is expected here).
-func WithNonSplittingTags(value string) TranslateOptionFunc {
-	const name string = "non_splitting_tags"
-	return func(o TranslateOptions) error {
-		o[name] = value
+func WithNonSplittingTags(value []string) TranslateOption {
+	return func(o *TranslateOptions) error {
+		for _, v := range value {
+			o.NonSplittingTags = append(o.NonSplittingTags, &v)
+		}
 		return nil
 	}
 }
 
-// WithSplittingTags specifies a comma-separated list of XML tags which always
+// WithSplittingTags specifies a list of XML tags which always
 // cause splits.
 //
 // See the example in the `outline_detection` parameter's description.
-func WithSplittingTags(value string) TranslateOptionFunc {
-	const name string = "splitting_tags"
-	return func(o TranslateOptions) error {
-		o[name] = value
+func WithSplittingTags(value []string) TranslateOption {
+	return func(o *TranslateOptions) error {
+		for _, v := range value {
+			o.SplittingTags = append(o.SplittingTags, &v)
+		}
 		return nil
 	}
 }
 
-// WithIgnoreTags specifies a comma-separated list of XML tags that indicate
+// WithIgnoreTags specifies a list of XML tags that indicate
 // text not to be translated.
 //
 // Use this parameter to ensure that elements in the original text are not
@@ -283,10 +277,15 @@ func WithSplittingTags(value string) TranslateOptionFunc {
 // ```
 // Bitte öffnen Sie die Seite <keep>Settings</keep> um Ihr System zu konfigurieren.
 // ```
-func WithIgnoreTags(value string) TranslateOptionFunc {
-	const name string = "ignore_tags"
-	return func(o TranslateOptions) error {
-		o[name] = value
+func WithIgnoreTags(value []string) TranslateOption {
+	return func(o *TranslateOptions) error {
+		for _, v := range value {
+			o.IgnoreTags = append(o.IgnoreTags, &v)
+		}
 		return nil
 	}
+}
+
+func translateOptionInvalidValueError(name string, value string) error {
+	return fmt.Errorf("Invalid value for option `%s`: %s", name, value)
 }

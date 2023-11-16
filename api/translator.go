@@ -42,7 +42,7 @@ func WithHTTPClient(c HTTPClient) TranslatorOption {
 func NewTranslator(authKey string, opts ...TranslatorOption) (*Translator, error) {
 	// Determine default server url based on auth key
 	var serverURL string
-	if authKeyIsFreeAccount(authKey) {
+	if isFreeAccountAuthKey(authKey) {
 		serverURL = ServerURLFree
 	} else {
 		serverURL = ServerURLPro
@@ -95,7 +95,7 @@ func (t *Translator) callAPI(method string, endpoint string, headers http.Header
 	return t.client.Do(req)
 }
 
-// authKeyIsFreeAccount determines whether the supplied auth key belongs to a Free account
-func authKeyIsFreeAccount(authKey string) bool {
+// isFreeAccountAuthKey determines whether the supplied auth key belongs to a Free account
+func isFreeAccountAuthKey(authKey string) bool {
 	return strings.HasSuffix(authKey, ":fx")
 }

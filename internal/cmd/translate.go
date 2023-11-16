@@ -31,7 +31,7 @@ var translateCmd = &cobra.Command{
 	Long:  "",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		options := []deepl.TranslateOptionFunc{}
+		options := []deepl.TranslateOption{}
 
 		visitor := func(flag *pflag.Flag) {
 			if flag.Name == "target-lang" {

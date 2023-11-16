@@ -1,11 +1,11 @@
 package deepl
 
 import (
+	"bytes"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -25,25 +25,34 @@ type GlossaryInfo struct {
 }
 
 func (t *Translator) CreateGlossary(name string, sourceLang string, targetLang string, entries []GlossaryEntry) (*GlossaryInfo, error) {
-	vals := make(url.Values)
+	const (
+		endpoint string = "glossaries"
+		method   string = http.MethodPost
+	)
 
-	vals.Set("name", name)
-	vals.Set("source_lang", sourceLang)
-	vals.Set("target_lang", targetLang)
-	vals.Set("entries_format", "tsv")
-
-	var entriesTSV = make([]string, 0, len(entries))
-	for _, entry := range entries {
-		entriesTSV = append(entriesTSV, fmt.Sprintf("%s\t%s", entry.Source, entry.Target))
+	data := struct {
+		Name          string `json:"name"`
+		SourceLang    string `json:"source_lang"`
+		TargetLang    string `json:"target_lang"`
+		Entries       string `json:"entries"`
+		EntriesFormat string `json:"entries_format"`
+	}{
+		Name:          name,
+		SourceLang:    sourceLang,
+		TargetLang:    targetLang,
+		EntriesFormat: "tsv",
 	}
-	vals.Set("entries", strings.Join(entriesTSV, "\n"))
+	data.Entries = encodeGlossaryEntries(entries...)
 
 	headers := make(http.Header)
-	headers.Set("Content-Type", "application/x-www-form-urlencoded")
+	headers.Set("Content-Type", "application/json")
 
-	body := strings.NewReader(vals.Encode())
+	body, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding request data: %w", err)
+	}
 
-	res, err := t.callAPI(http.MethodPost, "glossaries", headers, body)
+	res, err := t.callAPI(method, endpoint, headers, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +70,12 @@ func (t *Translator) CreateGlossary(name string, sourceLang string, targetLang s
 }
 
 func (t *Translator) ListGlossaries() ([]GlossaryInfo, error) {
-	res, err := t.callAPI(http.MethodGet, "glossaries", nil, nil)
+	const (
+		endpoint string = "glossaries"
+		method   string = http.MethodGet
+	)
+
+	res, err := t.callAPI(method, endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +95,10 @@ func (t *Translator) ListGlossaries() ([]GlossaryInfo, error) {
 }
 
 func (t *Translator) GetGlossary(glossaryId string) (*GlossaryInfo, error) {
-	endpoint := fmt.Sprintf("glossaries/%s", glossaryId)
+	var endpoint string = fmt.Sprintf("glossaries/%s", glossaryId)
+	const method string = http.MethodGet
 
-	res, err := t.callAPI(http.MethodGet, endpoint, nil, nil)
+	res, err := t.callAPI(method, endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -101,9 +116,10 @@ func (t *Translator) GetGlossary(glossaryId string) (*GlossaryInfo, error) {
 }
 
 func (t *Translator) DeleteGlossary(glossaryId string) error {
-	endpoint := fmt.Sprintf("glossaries/%s", glossaryId)
+	var endpoint string = fmt.Sprintf("glossaries/%s", glossaryId)
+	const method string = http.MethodDelete
 
-	res, err := t.callAPI(http.MethodDelete, endpoint, nil, nil)
+	res, err := t.callAPI(method, endpoint, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -116,12 +132,13 @@ func (t *Translator) DeleteGlossary(glossaryId string) error {
 }
 
 func (t *Translator) GetGlossaryEntries(glossaryId string) ([]GlossaryEntry, error) {
-	endpoint := fmt.Sprintf("glossaries/%s/entries", glossaryId)
+	var endpoint string = fmt.Sprintf("glossaries/%s/entries", glossaryId)
+	const method string = http.MethodGet
 
 	headers := make(http.Header)
 	headers.Set("Accept", "text/tab-separated-values")
 
-	res, err := t.callAPI(http.MethodGet, endpoint, headers, nil)
+	res, err := t.callAPI(method, endpoint, headers, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -143,4 +160,12 @@ func (t *Translator) GetGlossaryEntries(glossaryId string) ([]GlossaryEntry, err
 	}
 
 	return entries, nil
+}
+
+func encodeGlossaryEntries(entries ...GlossaryEntry) string {
+	var encoded = make([]string, 0, len(entries))
+	for _, entry := range entries {
+		encoded = append(encoded, fmt.Sprintf("%s\t%s", entry.Source, entry.Target))
+	}
+	return strings.Join(encoded, "\n")
 }
