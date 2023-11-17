@@ -1,85 +1,99 @@
 package cmd
 
 import (
+	"context"
+	"errors"
+	"flag"
 	"fmt"
-	"log"
+	"io"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	"github.com/spf13/cobra"
+	deepl "github.com/cluttrdev/deepl-go/api"
+
+	"github.com/cluttrdev/deepl-go/internal/command"
 )
 
-var langType string
+type LanguagesCmdConfig struct {
+	RootCmdConfig
 
-var languagesCmd = &cobra.Command{
-	Use:   "languages",
-	Short: "Retrieve supported languages",
-	Args:  cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		verbosity, err := cmd.Flags().GetCount("verbose")
-		if err != nil {
-			verbosity = 0
-		}
-
-		if cmd.Flags().Changed("glossary") {
-			printGlossaryLanguages(verbosity)
-		} else {
-			if cmd.Flags().Changed("source") {
-				langType = "source"
-			} else if cmd.Flags().Changed("target") {
-				langType = "target"
-			}
-
-			if langType == "" {
-				printLanguages("source", verbosity)
-				fmt.Println()
-				printLanguages("target", verbosity)
-			} else {
-				printLanguages(langType, verbosity)
-			}
-		}
-	},
+	langType       string
+	sourceLangFlag bool
+	targetLangFlag bool
 }
 
-func printLanguages(langType string, verbosity int) {
-	languages, err := translator.GetLanguages(langType)
-	if err != nil {
-		log.Fatal(err)
+func NewLanguagesCmd(stdout io.Writer, stderr io.Writer) *command.Command {
+	cfg := LanguagesCmdConfig{
+		RootCmdConfig: RootCmdConfig{
+			stdout: stdout,
+			stderr: stderr,
+		},
 	}
 
-	if verbosity > 0 {
-		fmt.Printf("%s languages available:\n", cases.Title(language.English).String(langType))
+	fs := flag.NewFlagSet("languages", flag.ContinueOnError)
+
+	cfg.RegisterFlags(fs)
+
+	return &command.Command{
+		Name:       "languages",
+		ShortHelp:  "Retrieve supported languages.",
+		ShortUsage: "deepl languages [option]...",
+		LongHelp:   "",
+		Flags:      fs,
+		Exec:       cfg.Exec,
 	}
-	for _, lang := range languages {
+}
+
+func (c *LanguagesCmdConfig) RegisterFlags(fs *flag.FlagSet) {
+	c.RootCmdConfig.RegisterFlags(fs)
+
+	fs.StringVar(&c.langType, "type", "", "the type of supported languages to retreive (`source` or `target`)")
+	fs.BoolVar(&c.sourceLangFlag, "source", false, "shorthand option for `--type=source`")
+	fs.BoolVar(&c.targetLangFlag, "target", false, "shorthand option for `--type=target`")
+}
+
+func (c *LanguagesCmdConfig) Exec(ctx context.Context, args []string) error {
+	t, err := newTranslator(c.RootCmdConfig)
+	if err != nil {
+		return err
+	}
+
+	if btoi(len(c.langType) > 0)+btoi(c.sourceLangFlag)+btoi(c.targetLangFlag) > 1 {
+		return errors.New("languages: `--type`,`--source` and `--target` options are mutually exclusive")
+	}
+
+	if c.sourceLangFlag {
+		c.langType = "source"
+	} else if c.targetLangFlag {
+		c.langType = "target"
+	}
+
+	ls, err := t.GetLanguages(c.langType)
+	if err != nil {
+		return err
+	}
+
+	if int(c.verbosity) > 0 {
+		fmt.Fprintf(c.stdout, "%s languages available:\n", cases.Title(language.English).String(c.langType))
+	}
+	writeLanguages(c.stdout, ls)
+	return nil
+}
+
+func btoi(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func writeLanguages(out io.Writer, langs []deepl.Language) {
+	for _, lang := range langs {
 		if lang.SupportsFormality {
-			fmt.Printf("%s: %s (supports formality)\n", lang.Code, lang.Name)
+			fmt.Fprintf(out, "%s: %s (supports formality)\n", lang.Code, lang.Name)
 		} else {
-			fmt.Printf("%s: %s\n", lang.Code, lang.Name)
+			fmt.Fprintf(out, "%s: %s\n", lang.Code, lang.Name)
 		}
 	}
-}
-
-func printGlossaryLanguages(verbosity int) {
-	languagePairs, err := translator.GetGlossaryLanguagePairs()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if verbosity > 0 {
-		fmt.Println("Language pairs supported for glossaries: (source, target)")
-	}
-	for _, pair := range languagePairs {
-		fmt.Printf("%s, %s\n", pair.SourceLang, pair.TargetLang)
-	}
-}
-
-func init() {
-	languagesCmd.Flags().StringVar(&langType, "type", "source", "whether source or target languages should be listed")
-	languagesCmd.Flags().Bool("source", false, "shorthand for --type=source")
-	languagesCmd.Flags().Bool("target", false, "shorthand for --type=target")
-	languagesCmd.Flags().Bool("glossary", false, "list language pairs supported for glossaries")
-	languagesCmd.MarkFlagsMutuallyExclusive("type", "source", "target", "glossary")
-
-	rootCmd.AddCommand(languagesCmd)
 }

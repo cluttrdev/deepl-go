@@ -1,174 +1,283 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
-	"log"
-	"os"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
+	"strings"
 
 	deepl "github.com/cluttrdev/deepl-go/api"
-	table "github.com/cluttrdev/deepl-go/internal"
+
+	"github.com/cluttrdev/deepl-go/internal/command"
 )
 
-var documentCmd = &cobra.Command{
-	Use:   "document",
-	Short: "Translate documents",
-}
-
-var documentUploadCmd = &cobra.Command{
-	Use:   "upload",
-	Short: "Upload a document for translation",
-	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		options := []deepl.TranslateOption{}
-
-		visitor := func(flag *pflag.Flag) {
-			if flag.Name == "target-lang" {
-				return
-			}
-
-			if flag.Changed {
-				switch flag.Name {
-				case "source-lang":
-					options = append(options, deepl.WithSourceLang(flag.Value.String()))
-				case "formality":
-					options = append(options, deepl.WithFormality(flag.Value.String()))
-				case "glossary_id":
-					options = append(options, deepl.WithGlossaryId(flag.Value.String()))
-				}
-			}
-		}
-
-		cmd.LocalFlags().VisitAll(visitor)
-
-		targetLang, err := cmd.LocalFlags().GetString("target-lang")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		document, err := translator.TranslateDocumentUpload(args[0], targetLang, options...)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		out, err := json.Marshal(document)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Println(string(out))
-	},
-}
-
-var documentStatusCmd = &cobra.Command{
-	Use:   "status [id]",
-	Short: "Retrieve current status of a document translation process",
-	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		id := args[0]
-		key, err := cmd.LocalFlags().GetString("document-key")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		status, err := translator.TranslateDocumentStatus(id, key)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		verbosity, err := cmd.Flags().GetCount("verbose")
-		if err != nil {
-			verbosity = 0
-		}
-
-		printDocumentStatus(*status, verbosity)
-	},
-}
-
-var documentDownloadCmd = &cobra.Command{
-	Use:   "download [id]",
-	Short: "Download the document after translation",
-	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		id := args[0]
-		key, err := cmd.LocalFlags().GetString("document-key")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		pr, err := translator.TranslateDocumentDownload(id, key)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer pr.Close()
-
-		out, err := cmd.LocalFlags().GetString("output")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if out == "-" {
-			_, err := io.Copy(os.Stdout, pr)
-			if err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			f, err := os.Create(out)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer f.Close()
-
-			if _, err := f.ReadFrom(pr); err != nil {
-				log.Fatal(err)
-			}
-		}
-	},
-}
-
-func printDocumentStatus(status deepl.DocumentStatus, verbosity int) {
-	if verbosity == 0 {
-		fmt.Println(status.Status)
-	} else {
-		hs := []string{"Document Id", "Status"}
-		row := []string{status.DocumentId, status.Status}
-
-		switch status.Status {
-		case "translating":
-			hs = append(hs, "Seconds Remaining")
-			row = append(row, status.SecondsRemaining)
-		case "done":
-			hs = append(hs, "Billed Characters")
-			row = append(row, fmt.Sprint(status.BilledCharacters))
-		case "error":
-			hs = append(hs, "Message")
-			row = append(row, status.Message)
-		}
-
-		tbl := table.NewTable(hs...)
-		tbl.AddRow(row...)
-		tbl.Print()
+func NewDocumentCmd(stdout io.Writer, stderr io.Writer) *command.Command {
+	return &command.Command{
+		Name:       "document",
+		ShortHelp:  "Translate documents",
+		ShortUsage: "deepl document [command] [option]...",
+		LongHelp:   "",
+		Subcommands: []*command.Command{
+			NewDocumentUploadCmd(stdout, stderr),
+			NewDocumentStatusCmd(stdout, stderr),
+			NewDocumentDownloadCmd(stdout, stderr),
+		},
 	}
 }
 
-func init() {
-	documentUploadCmd.Flags().String("target-lang", "DE", "the language into which the text should be translated")
-	documentUploadCmd.Flags().String("source-lang", "", "language of the text to be translated")
-	documentUploadCmd.Flags().String("formality", "", "whether the translated text should lean towards formal or informal language")
-	documentUploadCmd.Flags().String("glossary-id", "", "the glossary to use for translation")
+/*
+ *  UPLOAD
+ */
 
-	documentStatusCmd.Flags().String("document-key", "", "the document encryption key")
+func NewDocumentUploadCmd(stdout io.Writer, stderr io.Writer) *command.Command {
+	cfg := DocumentUploadCmdConfig{
+		RootCmdConfig: RootCmdConfig{
+			stdout: stdout,
+			stderr: stderr,
+		},
 
-	documentDownloadCmd.Flags().StringP("output", "o", "-", "the output to write the downloaded document to")
-	documentDownloadCmd.Flags().String("document-key", "", "the document encryption key")
+		flags: flag.NewFlagSet("document upload", flag.ContinueOnError),
+	}
 
-	documentCmd.AddCommand(documentUploadCmd)
-	documentCmd.AddCommand(documentStatusCmd)
-	documentCmd.AddCommand(documentDownloadCmd)
+	cfg.RegisterFlags(cfg.flags)
 
-	rootCmd.AddCommand(documentCmd)
+	return &command.Command{
+		Name:       "upload",
+		ShortHelp:  "Upload documents for translation",
+		ShortUsage: "deepl document upload [option]... --target-lang=LANG FILE...",
+		LongHelp:   "",
+		Flags:      cfg.flags,
+		Exec:       cfg.Exec,
+	}
+}
+
+type DocumentUploadCmdConfig struct {
+	RootCmdConfig
+
+	flags *flag.FlagSet
+
+	targetLang string
+	sourceLang string
+	formality  string
+	glossaryID string
+}
+
+func (c *DocumentUploadCmdConfig) RegisterFlags(fs *flag.FlagSet) {
+	c.RootCmdConfig.RegisterFlags(fs)
+
+	fs.StringVar(&c.targetLang, "target-lang", "", "the language into which the text should be translated (required)")
+	fs.StringVar(&c.targetLang, "to", "", "alias option for `--target-lang`")
+	fs.StringVar(&c.sourceLang, "source-lang", "", "the language to be translated")
+	fs.StringVar(&c.sourceLang, "from", "", "alias option for `--source-lang`")
+	fs.StringVar(&c.formality, "formality", "default", "whether the engine should lean towards formal or informal language")
+	fs.StringVar(&c.glossaryID, "glossary_id", "", "the glossary to use for the translation")
+}
+
+func (c *DocumentUploadCmdConfig) Exec(ctx context.Context, args []string) error {
+	if len(args) == 0 {
+		fmt.Fprintln(c.stderr, "Error: document upload: not enough arguments")
+		return flag.ErrHelp
+	}
+
+	if c.targetLang == "" {
+		fmt.Fprintln(c.stderr, "Error: document upload: `--target-lang` is required")
+		return flag.ErrHelp
+	}
+
+	t, err := newTranslator(c.RootCmdConfig)
+	if err != nil {
+		return err
+	}
+
+	opts := []deepl.TranslateOption{}
+	c.flags.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "source-lang":
+			opts = append(opts, deepl.WithSourceLang(c.sourceLang))
+		case "formality":
+			opts = append(opts, deepl.WithFormality(c.formality))
+		case "glossary-id":
+			opts = append(opts, deepl.WithGlossaryID(c.glossaryID))
+		}
+	})
+
+	type document struct {
+		Path string `json:"document_path"`
+
+		deepl.DocumentInfo
+	}
+
+	var docs []document
+
+	defer func() {
+		marshalled, err := json.Marshal(docs)
+		if err != nil {
+			fmt.Fprintln(c.stderr, err)
+		}
+		fmt.Fprintln(c.stdout, string(marshalled))
+	}()
+
+	for _, path := range args {
+		di, err := t.TranslateDocumentUpload(path, c.targetLang, opts...)
+		if err != nil {
+			return err
+		}
+		docs = append(docs, document{
+			Path:         path,
+			DocumentInfo: *di,
+		})
+	}
+
+	return nil
+}
+
+/*
+ *  STATUS
+ */
+
+func NewDocumentStatusCmd(stdout io.Writer, stderr io.Writer) *command.Command {
+	cfg := DocumentStatusCmdConfig{
+		RootCmdConfig: RootCmdConfig{
+			stdout: stdout,
+			stderr: stderr,
+		},
+	}
+
+	fs := flag.NewFlagSet("document status", flag.ContinueOnError)
+
+	cfg.RegisterFlags(fs)
+
+	return &command.Command{
+		Name:       "status",
+		ShortHelp:  "Retrieve the current status of a document translation process.",
+		ShortUsage: "deepl document status [option]... ID:KEY...",
+		LongHelp:   "",
+		Flags:      fs,
+		Exec:       cfg.Exec,
+	}
+}
+
+type DocumentStatusCmdConfig struct {
+	RootCmdConfig
+}
+
+func (c *DocumentStatusCmdConfig) RegisterFlags(fs *flag.FlagSet) {
+	c.RootCmdConfig.RegisterFlags(fs)
+}
+
+func (c *DocumentStatusCmdConfig) Exec(ctx context.Context, args []string) error {
+	if len(args) == 0 {
+		fmt.Fprintln(c.stderr, "Error: document status: not enough arguments")
+		return flag.ErrHelp
+	}
+
+	t, err := newTranslator(c.RootCmdConfig)
+	if err != nil {
+		return err
+	}
+
+	var dis []deepl.DocumentInfo
+	for _, arg := range args {
+		info := strings.Split(arg, ":")
+		if len(info) != 2 {
+			return fmt.Errorf("invalid argument: %s", arg)
+		}
+		dis = append(dis, deepl.DocumentInfo{
+			DocumentId:  info[0],
+			DocumentKey: info[1],
+		})
+	}
+
+	var dss []*deepl.DocumentStatus
+
+	defer func() {
+		marshalled, err := json.Marshal(dss)
+		if err != nil {
+			fmt.Fprintln(c.stderr, err)
+		}
+		fmt.Fprintln(c.stdout, string(marshalled))
+	}()
+
+	for _, di := range dis {
+		ds, err := t.TranslateDocumentStatus(di.DocumentId, di.DocumentKey)
+		if err != nil {
+			return err
+		}
+		dss = append(dss, ds)
+	}
+
+	return nil
+}
+
+/*
+ *  DOWNLOAD
+ */
+
+func NewDocumentDownloadCmd(stdout io.Writer, stderr io.Writer) *command.Command {
+	cfg := DocumentDownloadCmdConfig{
+		RootCmdConfig: RootCmdConfig{
+			stdout: stdout,
+			stderr: stderr,
+		},
+	}
+
+	fs := flag.NewFlagSet("document download", flag.ContinueOnError)
+
+	cfg.RegisterFlags(fs)
+
+	return &command.Command{
+		Name:       "download",
+		ShortHelp:  "Download a document after translation",
+		ShortUsage: "deepl document download [option]... ID:KEY",
+		LongHelp:   "",
+		Flags:      fs,
+		Exec:       cfg.Exec,
+	}
+}
+
+type DocumentDownloadCmdConfig struct {
+	RootCmdConfig
+}
+
+func (c *DocumentDownloadCmdConfig) RegisterFlags(fs *flag.FlagSet) {
+	c.RootCmdConfig.RegisterFlags(fs)
+}
+
+func (c *DocumentDownloadCmdConfig) Exec(ctx context.Context, args []string) error {
+	if len(args) == 0 {
+		fmt.Fprintln(c.stderr, "Error: document download: not enough arguments")
+		return flag.ErrHelp
+	} else if len(args) > 1 {
+		fmt.Fprintln(c.stderr, "Error: document download: too many arguments")
+		return flag.ErrHelp
+	}
+
+	t, err := newTranslator(c.RootCmdConfig)
+	if err != nil {
+		return err
+	}
+
+	info := strings.Split(args[0], ":")
+	if len(info) != 2 {
+		return fmt.Errorf("invalid argument: %s", args[0])
+	}
+	di := deepl.DocumentInfo{
+		DocumentId:  info[0],
+		DocumentKey: info[1],
+	}
+
+	pr, err := t.TranslateDocumentDownload(di.DocumentId, di.DocumentKey)
+	if err != nil {
+		return nil
+	}
+	defer pr.Close()
+
+	_, err = io.Copy(c.stdout, pr)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

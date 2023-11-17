@@ -1,37 +1,61 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
+	"flag"
 	"fmt"
+	"io"
 
-	"github.com/spf13/cobra"
+	"github.com/cluttrdev/deepl-go/internal/command"
 )
 
-var usageCmd = &cobra.Command{
-	Use:   "usage",
-	Short: "Retrieve usage information and account limits",
-	Args:  cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		usage, err := translator.GetUsage()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		if v, _ := cmd.Flags().GetCount("verbose"); v > 0 {
-			fmt.Println("Usage this billing period:")
-		}
-		if usage.CharacterLimit > 0 {
-			fmt.Printf("Characters: %d of %d\n", usage.CharacterCount, usage.CharacterLimit)
-		}
-		if usage.DocumentLimit > 0 {
-			fmt.Printf("Documents: %d of /%d\n", usage.DocumentCount, usage.DocumentLimit)
-		}
-		if usage.TeamDocumentLimit > 0 {
-			fmt.Printf("Team Documents: %d of /%d\n", usage.TeamDocumentCount, usage.TeamDocumentLimit)
-		}
-	},
+type UsageCmdConfig struct {
+	RootCmdConfig
 }
 
-func init() {
-	rootCmd.AddCommand(usageCmd)
+func (c *UsageCmdConfig) RegisterFlags(fs *flag.FlagSet) {
+	c.RootCmdConfig.RegisterFlags(fs)
+}
+
+func (c *UsageCmdConfig) Exec(ctx context.Context, args []string) error {
+	t, err := newTranslator(c.RootCmdConfig)
+	if err != nil {
+		return err
+	}
+
+	usage, err := t.GetUsage()
+	if err != nil {
+		return err
+	}
+
+	m, err := json.Marshal(usage)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(c.stdout, string(m))
+
+	return nil
+}
+
+func NewUsageCmd(stdout io.Writer, stderr io.Writer) *command.Command {
+	cfg := UsageCmdConfig{
+		RootCmdConfig: RootCmdConfig{
+			stdout: stdout,
+			stderr: stderr,
+		},
+	}
+
+	fs := flag.NewFlagSet("usage", flag.ContinueOnError)
+
+	cfg.RegisterFlags(fs)
+
+	return &command.Command{
+		Name:       "usage",
+		ShortHelp:  "Retrieve usage information and account limits",
+		ShortUsage: "deepl usage [option]...",
+		LongHelp:   "",
+		Flags:      fs,
+		Exec:       cfg.Exec,
+	}
 }
