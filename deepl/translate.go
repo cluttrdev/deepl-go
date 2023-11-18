@@ -18,7 +18,7 @@ type Translation struct {
 // The total request body size must not exceed 128 KiB (128 · 1024 bytes).
 func (t *Translator) TranslateText(text []string, targetLang string, opts ...TranslateOption) ([]Translation, error) {
 	const (
-		endpoint string = "translate"
+		endpoint string = "v2/translate"
 		method   string = http.MethodPost
 	)
 

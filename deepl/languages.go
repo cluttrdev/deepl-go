@@ -19,14 +19,14 @@ type LanguagePair struct {
 }
 
 func (t *Translator) GetLanguages(langType string) ([]Language, error) {
-	const (
-		endpoint string = "languages"
-		method   string = http.MethodGet
-	)
+    const (
+        endpoint string = "v2/languages"
+        method string = http.MethodGet
+    )
 
-	opts := struct {
-		Type string `json:"type,omitempty"`
-	}{}
+    opts := struct{
+        Type string `json:"type,omitempty"`
+    }{}
 
 	switch langType {
 	case "":
@@ -40,7 +40,7 @@ func (t *Translator) GetLanguages(langType string) ([]Language, error) {
 	headers := make(http.Header)
 	headers.Set("Content-Type", "application/json")
 
-	body, err := json.Marshal(opts)
+    body, err := json.Marshal(opts)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding request data: %w", err)
 	}
@@ -63,10 +63,10 @@ func (t *Translator) GetLanguages(langType string) ([]Language, error) {
 }
 
 func (t *Translator) GetGlossaryLanguagePairs() ([]LanguagePair, error) {
-	const (
-		endpoint string = "glossary-language-pairs"
-		method   string = http.MethodGet
-	)
+    const (
+        endpoint string = "v2/glossary-language-pairs"
+        method string = http.MethodGet
+    )
 
 	res, err := t.callAPI(method, endpoint, nil, nil)
 	if err != nil {

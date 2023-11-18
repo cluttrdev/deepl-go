@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	ServerURLPro  = "https://api.deepl.com/v2"
-	ServerURLFree = "https://api-free.deepl.com/v2"
+	ServerURLPro  = "https://api.deepl.com"
+	ServerURLFree = "https://api-free.deepl.com"
 )
 
 type Translator struct {

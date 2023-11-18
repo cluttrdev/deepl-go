@@ -28,7 +28,7 @@ type DocumentStatus struct {
 
 func (t *Translator) TranslateDocumentUpload(path string, targetLang string, opts ...TranslateOption) (*DocumentInfo, error) {
 	const (
-		endpoint string = "document"
+		endpoint string = "v2/document"
 		method   string = http.MethodPost
 	)
 
@@ -121,7 +121,7 @@ func (t *Translator) TranslateDocumentUpload(path string, targetLang string, opt
 }
 
 func (t *Translator) TranslateDocumentStatus(id string, key string) (*DocumentStatus, error) {
-	var endpoint string = fmt.Sprintf("document/%s", id)
+	var endpoint string = fmt.Sprintf("v2/document/%s", id)
 	const method string = http.MethodPost
 
 	data := struct {
@@ -156,7 +156,7 @@ func (t *Translator) TranslateDocumentStatus(id string, key string) (*DocumentSt
 }
 
 func (t *Translator) TranslateDocumentDownload(id string, key string) (*io.PipeReader, error) {
-	var endpoint string = fmt.Sprintf("document/%s/result", id)
+	var endpoint string = fmt.Sprintf("v2/document/%s/result", id)
 	const method string = http.MethodPost
 
 	data := struct {

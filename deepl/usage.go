@@ -16,7 +16,7 @@ type Usage struct {
 
 func (t *Translator) GetUsage() (*Usage, error) {
 	const (
-		endpoint string = "usage"
+		endpoint string = "v2/usage"
 		method   string = http.MethodGet
 	)
 
