@@ -10,7 +10,7 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	deepl "github.com/cluttrdev/deepl-go/api"
+	"github.com/cluttrdev/deepl-go/deepl"
 
 	"github.com/cluttrdev/deepl-go/internal/command"
 )

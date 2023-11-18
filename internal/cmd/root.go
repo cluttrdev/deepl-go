@@ -8,7 +8,8 @@ import (
 	"io"
 	"os"
 
-	deepl "github.com/cluttrdev/deepl-go/api"
+	"github.com/cluttrdev/deepl-go/deepl"
+
 	"github.com/cluttrdev/deepl-go/internal/command"
 )
 
