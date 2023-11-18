@@ -115,7 +115,12 @@ func Execute() error {
 		return errors.New("failed to configure root command")
 	}
 
-	if err := rootCmd.Parse(os.Args[1:]); err != nil {
+	args := os.Args[1:]
+	opts := []command.ParseOption{
+		command.WithEnvVarPrefix("DEEPL"),
+	}
+
+	if err := rootCmd.Parse(args, opts...); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return nil
 		} else {
