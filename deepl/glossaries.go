@@ -25,29 +25,29 @@ type GlossaryInfo struct {
 }
 
 func (t *Translator) CreateGlossary(name string, sourceLang string, targetLang string, entries []GlossaryEntry) (*GlossaryInfo, error) {
-    const (
-        endpoint string = "v2/glossaries"
-        method string = http.MethodPost
-    )
+	const (
+		endpoint string = "v2/glossaries"
+		method   string = http.MethodPost
+	)
 
-    data := struct{
-        Name string `json:"name"`
-        SourceLang string `json:"source_lang"`
-        TargetLang string `json:"target_lang"`
-        Entries string `json:"entries"`
-        EntriesFormat string `json:"entries_format"`
-    }{
-        Name: name,
-        SourceLang: sourceLang,
-        TargetLang: targetLang,
-        EntriesFormat: "tsv",
-    }
-    data.Entries = encodeGlossaryEntries(entries...)
+	data := struct {
+		Name          string `json:"name"`
+		SourceLang    string `json:"source_lang"`
+		TargetLang    string `json:"target_lang"`
+		Entries       string `json:"entries"`
+		EntriesFormat string `json:"entries_format"`
+	}{
+		Name:          name,
+		SourceLang:    sourceLang,
+		TargetLang:    targetLang,
+		EntriesFormat: "tsv",
+	}
+	data.Entries = encodeGlossaryEntries(entries...)
 
 	headers := make(http.Header)
 	headers.Set("Content-Type", "application/json")
 
-    body, err := json.Marshal(data)
+	body, err := json.Marshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding request data: %w", err)
 	}
@@ -70,10 +70,10 @@ func (t *Translator) CreateGlossary(name string, sourceLang string, targetLang s
 }
 
 func (t *Translator) ListGlossaries() ([]GlossaryInfo, error) {
-    const (
-        endpoint string = "v2/glossaries"
-        method string = http.MethodGet
-    )
+	const (
+		endpoint string = "v2/glossaries"
+		method   string = http.MethodGet
+	)
 
 	res, err := t.callAPI(method, endpoint, nil, nil)
 	if err != nil {
@@ -96,7 +96,7 @@ func (t *Translator) ListGlossaries() ([]GlossaryInfo, error) {
 
 func (t *Translator) GetGlossary(glossaryId string) (*GlossaryInfo, error) {
 	var endpoint string = fmt.Sprintf("v2/glossaries/%s", glossaryId)
-    const method string = http.MethodGet
+	const method string = http.MethodGet
 
 	res, err := t.callAPI(method, endpoint, nil, nil)
 	if err != nil {
@@ -117,7 +117,7 @@ func (t *Translator) GetGlossary(glossaryId string) (*GlossaryInfo, error) {
 
 func (t *Translator) DeleteGlossary(glossaryId string) error {
 	var endpoint string = fmt.Sprintf("v2/glossaries/%s", glossaryId)
-    const method string = http.MethodDelete
+	const method string = http.MethodDelete
 
 	res, err := t.callAPI(method, endpoint, nil, nil)
 	if err != nil {
@@ -133,7 +133,7 @@ func (t *Translator) DeleteGlossary(glossaryId string) error {
 
 func (t *Translator) GetGlossaryEntries(glossaryId string) ([]GlossaryEntry, error) {
 	var endpoint string = fmt.Sprintf("v2/glossaries/%s/entries", glossaryId)
-    const method string = http.MethodGet
+	const method string = http.MethodGet
 
 	headers := make(http.Header)
 	headers.Set("Accept", "text/tab-separated-values")
@@ -163,10 +163,9 @@ func (t *Translator) GetGlossaryEntries(glossaryId string) ([]GlossaryEntry, err
 }
 
 func encodeGlossaryEntries(entries ...GlossaryEntry) string {
-    var encoded = make([]string, 0, len(entries))
-    for _, entry := range entries {
-        encoded = append(encoded, fmt.Sprintf("%s\t%s", entry.Source, entry.Target))
-    }
-    return strings.Join(encoded, "\n")
+	var encoded = make([]string, 0, len(entries))
+	for _, entry := range entries {
+		encoded = append(encoded, fmt.Sprintf("%s\t%s", entry.Source, entry.Target))
+	}
+	return strings.Join(encoded, "\n")
 }
-
