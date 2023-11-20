@@ -1,6 +1,7 @@
 package deepl
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -19,4 +20,17 @@ func httpError(statusCode int) error {
 	}
 
 	return fmt.Errorf("%d - %s", statusCode, statusText)
+}
+
+var ErrorStatusTooManyRequests = errors.New(httpError(http.StatusTooManyRequests).Error())
+var ErrorStatusInternalServerError = errors.New(httpError(http.StatusInternalServerError).Error())
+
+func retriableHTTPError(statusCode int) error {
+	switch {
+	case statusCode == http.StatusTooManyRequests:
+		return ErrorStatusTooManyRequests
+	case statusCode >= http.StatusInternalServerError:
+		return ErrorStatusInternalServerError
+	}
+	return nil
 }

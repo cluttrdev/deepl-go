@@ -1,11 +1,14 @@
 package deepl
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/cluttrdev/deepl-go/internal/retry"
 )
 
 const (
@@ -92,7 +95,39 @@ func (t *Translator) callAPI(method string, endpoint string, headers http.Header
 		}
 	}
 
-	return t.client.Do(req)
+	res, err := retry.DoWithData(
+		func() (*http.Response, error) {
+			res, err := t.client.Do(req)
+			if err != nil {
+				return res, err
+			} else if err := retriableHTTPError(res.StatusCode); err != nil {
+				return res, err
+			}
+			return res, nil
+		},
+		retry.RetryIf(func(err error) bool {
+			return isRetriableHTTPError(err)
+		}),
+		retry.MaxAttempts(5),
+		retry.WithBackoff(&retry.Backoff{
+			InitialDelay: 1 * time.Second,
+			MaxDelay:     120 * time.Second,
+			Factor:       1.6,
+			Jitter:       0.23,
+		}),
+	)
+
+	return res, err
+}
+
+func isRetriableHTTPError(err error) bool {
+	switch {
+	case errors.Is(err, ErrorStatusTooManyRequests):
+		return true
+	case errors.Is(err, ErrorStatusInternalServerError):
+		return true
+	}
+	return false
 }
 
 // isFreeAccountAuthKey determines whether the supplied auth key belongs to a Free account
