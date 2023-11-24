@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This is a big refactoring release that contains breaking changes in both library
 and command-line interfaces and restructures the project layout.
 
+### Added
+
+ - Retry with backoff logic in api calls
+
 ### Changed
 
  - Make translator http client an interface
