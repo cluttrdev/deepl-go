@@ -27,7 +27,7 @@ import (
     "fmt"
     "log"
     
-    deepl "github.com/cluttrdev/deepl-go/pkg/api"
+    "github.com/cluttrdev/deepl-go/deepl"
 )
 
 authKey := "f63c02c5-f056-..."  // Replace with your key
@@ -58,12 +58,11 @@ VERSION=$(curl -sSL https://api.github.com/repos/cluttrdev/deepl-go/releases/lat
 
 # download
 OS=linux
-ARCH=x86_64
+ARCH=amd64
 curl -LO https://github.com/cluttrdev/deepl-go/releases/download/${VERSION}/deepl_${VERSION}_${OS}_${ARCH}.tar.gz
 
 # extract and install (requires privileges)
-BIN_DIR=/usr/local/bin
-tar -zxf deepl_${VERSION}_${OS}_${ARCH}.tar.gz -C ${BIN_DIR} deepl
+tar -C ~/.local/bin -zxf deepl_${VERSION}_${OS}_${ARCH}.tar.gz deepl
 ```
 
 Alternatively, you can use the Go tools:
@@ -83,13 +82,8 @@ $ deepl translate "Hello, world!" --target-lang FR
 Bonjour, le monde !
 ```
 
-To get an overview of the available commands, run `deepl help`.
+To get an overview of the available commands, run `deepl --help`.
 
-#### Autocompletion
-
-You can use the `deepl completion` command to generate autocompletion scripts for the cli.
-
-
-[api-docs]: https://www.deepl.com/docs-api?utm_source=github
-
-[create-account]: https://www.deepl.com/pro?utm_source=github#developer
+<!-- Links -->
+[api-docs]: https://www.deepl.com/docs-api
+[create-account]: https://www.deepl.com/pro#developer
