@@ -31,7 +31,8 @@ dist *args="":
 
 # create a new release
 release *args="": clean
-    {{GIT_DIR}}/scripts/release.sh {{args}}
+    export GITHUB_REPO=deepl-go
+    {{GIT_DIR}}/scripts/release.sh -p {{MAIN}} {{args}}
 
 changes from="" to="":
     #!/bin/sh
