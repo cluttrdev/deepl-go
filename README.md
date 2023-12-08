@@ -1,6 +1,7 @@
 # DeepL Go Library
 
-This is an **unofficial** client library and command line interface for the [DeepL API][api-docs].
+This is an **unofficial** client library and command line interface for the
+[DeepL API][api-docs].
 
 ## Getting an authentication ley
 
@@ -20,9 +21,11 @@ go get github.com/cluttrdev/deepl-go
 
 ### Usage
 
-Import the package and construct a `Translator`.
+Import the package and create a `Translator`.
 
 ```go
+package main
+
 import (
     "fmt"
     "log"
@@ -30,39 +33,51 @@ import (
     "github.com/cluttrdev/deepl-go/deepl"
 )
 
-authKey := "f63c02c5-f056-..."  // Replace with your key
+func main() {
+    authKey := "f63c02c5-f056-..."  // Replace with your key
 
-translator, err := deepl.NewTranslator(authKey)
-if err != nil {
-    log.Fatal(err)
+    translator, err := deepl.NewTranslator(authKey)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    translations, err := translator.TranslateText([]string{"Hello, world!"}, "FR")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Println(translations[0].Text)  // "Bonjour, le monde !"
 }
-
-translations, err := translator.TranslateText([]string{"Hello, world!"}, "FR")
-if err != nil {
-    log.Fatal(err)
-}
-
-fmt.Println(translations[0].Text)  // "Bonjour, le monde !"
 ```
 
 ## Command Line Interface
 
 ### Installation
-
-Your can install the `deepl` command line tool using a prebuilt
-[binary](https://github.com/cluttrdev/deepl-go/releases), e.g. like this:
+ 
+To install the `deepl` cli you can download a [prebuilt binary][releases] that
+matches your system and place it in a directory that's part of your system's
+search path, e.g.
 
 ```shell
-# determine latest release
-VERSION=$(curl -sSL https://api.github.com/repos/cluttrdev/deepl-go/releases/latest | jq -r '.tag_name')
-
-# download
+# system information
 OS=linux
 ARCH=amd64
-curl -LO https://github.com/cluttrdev/deepl-go/releases/download/${VERSION}/deepl_${VERSION}_${OS}_${ARCH}.tar.gz
 
-# extract and install (requires privileges)
-tar -C ~/.local/bin -zxf deepl_${VERSION}_${OS}_${ARCH}.tar.gz deepl
+# install dir (must exist)
+BIN_DIR=$HOME/.local/bin
+
+# download latest release
+RELEASE_TAG=$(curl -sSfL https://api.github.com/repos/cluttrdev/deepl-go/releases/latest | jq -r '.tag_name')
+curl \
+    -L https://github.com/cluttrdev/deepl-go/releases/download/${RELEASE_TAG}/deepl_${RELEASE_TAG}_${OS}_${ARCH}.tar.gz \
+    -o deepl.tar.gz
+
+# create install dir (if necessary)
+BIN_DIR=$HOME/.local/bin  # assuming this is part of your system's $PATH
+mkdir -p ${BIN_DIR}
+
+# install
+tar -C ${BIN_DIR} -zxf deepl.tar.gz deepl
 ```
 
 Alternatively, you can use the Go tools:
@@ -73,17 +88,18 @@ go install github.com/cluttrdev/deepl-go/cmd/deepl@latest
 
 ### Usage
 
-Currently, in order to use the command line interface the authentication key must be set as an environment
-variable.
+To use the cli the authentication key must either be set as an environment
+variable or passed via the `--auth-key` option.
 
 ```shell
 $ export DEEPL_AUTH_KEY="f63c02c5-f056..."
-$ deepl translate "Hello, world!" --target-lang FR
+$ deepl translate --to FR "Hello, World!"
 Bonjour, le monde !
 ```
 
 To get an overview of the available commands, run `deepl --help`.
 
 <!-- Links -->
+[releases]: https://github.com/cluttrdev/deepl-go/releases/latest
 [api-docs]: https://www.deepl.com/docs-api
 [create-account]: https://www.deepl.com/pro#developer
